@@ -1,5 +1,78 @@
 @import "tailwindcss";
 body {
-  font-family: 'Red Hat Display', sans-serif;
+  font-family: 'Poppins', sans-serif;
   overflow: hidden;
+}
+
+
+/*
+black : #111315
+grey : #1f2628
+golden : #c69909
+*/
+
+@import 'datatables.net-dt/css/dataTables.dataTables.css';
+div.dt-container .dt-search label,
+div.dt-container .dt-length label,
+div.dt-container .dt-info {
+  color: #c69909 !important; 
+  font-weight: 500;
+}
+
+div.dt-container .dt-search input,
+div.dt-container .dt-input {
+  background-color: #111315 !important; 
+  border: 1px solid rgba(198, 153, 9, 0.4) !important;
+  color: #BDBDBD !important;
+  border-radius: 6px;
+  margin-left: 0.5em;
+  padding: 6px;
+}
+table.dataTable {
+  border-collapse: collapse; 
+  border: 2px solid black;  
+}
+div.dt-container .dt-search input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #c69909; 
+}
+
+table.dataTable > thead > tr > th {
+  color: #c69909 !important;
+  font-weight: bold;
+}
+table.dataTable th,
+table.dataTable td {
+  border: 2px solid black;
+}
+table.dataTable > tbody > tr > td {
+  color: #BDBDBD; 
+}
+
+table.dataTable > tbody > tr > td {
+  border-top: 2px solid black; 
+}
+table.dataTable > tbody > tr:hover {
+  background-color: rgba(198, 153, 9, 0.15) !important;
+}
+
+div.dt-container .dt-paging .dt-paging-button {
+  color: #1f2628 !important;
+  border: 1px solid transparent !important;
+}
+div.dt-container .dt-paging .dt-paging-button.current, 
+div.dt-container .dt-paging .dt-paging-button.current:hover {
+  background: #c69909 !important;
+  color: black !important;
+  border-radius: 9999px;
+  border: 1px solid #c69909 !important;
+}
+div.dt-container .dt-paging .dt-paging-button:hover {
+  background: rgba(198, 153, 9, 0.5) !important;
+  color: white !important;
+  border-radius: 9999px;
+  border: 1px solid transparent !important;
+}
+div.dt-container .dt-paging .dt-paging-button.disabled {
+  opacity: 0.3;
 }

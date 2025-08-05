@@ -13,7 +13,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 function SignupPage() {
     const [formData, setFormData] = useState({
         first_name: '', last_name: '', user_name: '', email: '', password: '',
-        date_of_birth: '', mobile_number: '', gender: '',
+        date_of_birth: '', mobile_number: '', gender: '', role: '',
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -101,6 +101,17 @@ function SignupPage() {
                                     <option className="text-black" value="Male">Male</option>
                                     <option className="text-black" value="Female">Female</option>
                                     <option className="text-black" value="Other">Other</option>
+                                </select>
+                           </div>
+                        </div>
+                        <div className="md:col-span-2">
+                           <label className="block text-white/90 text-sm font-bold mb-2">Role</label>
+                           <div className="relative">
+                                <UsersIcon className={iconStyle} />
+                                <select name="role" value={formData.role} className={inputStyle} onChange={handleChange} required>
+                                    <option className="text-black" value="">Select Role</option>
+                                    <option className="text-black" value="admin">Admin</option>
+                                    <option className="text-black" value="super_admin">Super Admin</option>
                                 </select>
                            </div>
                         </div>
