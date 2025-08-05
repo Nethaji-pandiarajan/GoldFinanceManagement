@@ -1,6 +1,6 @@
 // src/components/AuthLayout.tsx
 import React from 'react';
-import BackgroundImage from '../assets/authbackground.jpg';
+import BackgroundImage from '../assets/authbackground2.png';
 
 type AuthLayoutProps = {
   children: React.ReactNode;
@@ -10,12 +10,12 @@ function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="relative min-h-screen bg-gray-950">
       <div
-        className="absolute inset-0 bg-cover bg-center blur-xl"
+        className="absolute inset-0 bg-[#1f2628] bg-cover bg-center blur-xl"
         style={{ backgroundImage: `url(${BackgroundImage})` }}
       ></div>
 
       <div
-        className="absolute inset-[40px] bg-cover bg-center rounded-2xl overflow-hidden"
+        className="absolute inset-[40px] bg-[#1f2628] bg-cover bg-center rounded-2xl overflow-hidden"
         style={{ backgroundImage: `url(${BackgroundImage})` }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(0,0,0,0.7)_100%)]"></div>
