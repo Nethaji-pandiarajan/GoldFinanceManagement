@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AlertNotification from './AlertNotification';
-import { CheckIcon, PlusIcon } from '@heroicons/react/24/solid';
+import { PlusIcon } from '@heroicons/react/24/solid';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 type AlertState = { show: boolean; type: 'success' | 'error' | 'alert'; message: string; } | null;
@@ -74,7 +74,8 @@ export default function GoldRateDetails() {
   }
 
   const cellStyle = "p-3";
-  const inputStyle = "w-full p-2 rounded bg-[#1f2628] text-white border border-gray-600 focus:outline-none focus:border-[#c69909]";
+  const inputStyle = "w-full h-11 p-2 rounded bg-[#1f2628] text-white border border-gray-600 focus:outline-none focus:border-[#c69909]";
+  const buttonStyle = "flex items-center justify-center w-full bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors";
 
   return (
     <>
@@ -83,18 +84,21 @@ export default function GoldRateDetails() {
         <h1 className="text-2xl font-bold text-[#c69909] mb-4">Manage Gold Rates</h1>
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          {/* --- UPDATED: Added table-fixed for consistent column widths --- */}
+          <table className="w-full text-left table-fixed">
             <thead className="border-b-2 border-[#c69909]">
               <tr>
-                <th className={`${cellStyle} text-white`}>Karat Name</th>
-                <th className={`${cellStyle} text-white`}>Today's Rate (per gram)</th>
-                <th className={`${cellStyle} text-white text-center`}>Update</th>
+                {/* --- UPDATED: Added explicit column widths --- */}
+                <th className={`${cellStyle} w-1/3 text-white`}>Karat Name</th>
+                <th className={`${cellStyle} w-1/3 text-white`}>Today's Rate (per gram)</th>
+                <th className={`${cellStyle} w-1/3 text-white text-center`}>Update</th>
               </tr>
             </thead>
             <tbody>
               {rates.map(rate => (
                 <tr key={rate.rate_id} className="border-b border-gray-800">
-                  <td className={`${cellStyle} text-white font-semibold`}>{rate.karat_name}</td>
+                  {/* --- UPDATED: Changed text color to gray-300 --- */}
+                  <td className={`${cellStyle} text-gray-300 font-semibold`}>{rate.karat_name}</td>
                   <td className={cellStyle}>
                     {editingRowId === rate.rate_id ? (
                       <input
@@ -103,21 +107,24 @@ export default function GoldRateDetails() {
                         value={rate.today_rate}
                         onChange={(e) => handleInputChange(e, rate.rate_id)}
                         className={inputStyle}
+                        autoFocus
                       />
                     ) : (
-                      <span onClick={() => handleEditClick(rate)} className="cursor-pointer p-2 hover:bg-[#1f2628] rounded-md">
+                      <span onClick={() => handleEditClick(rate)} className="cursor-pointer p-2 text-gray-300 hover:bg-[#1f2628] rounded-md">
                         ₹{parseFloat(rate.today_rate).toFixed(2)}
                       </span>
                     )}
                   </td>
                   <td className={`${cellStyle} text-center`}>
-                    {editingRowId === rate.rate_id && (
+                    {editingRowId === rate.rate_id ? (
                       <button 
                         onClick={() => handleUpdate(rate.rate_id)} 
-                        className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600"
+                        className={buttonStyle}
                       >
-                        <CheckIcon className="h-5 w-5" />
+                        Update
                       </button>
+                    ) : (
+                      <div className="h-11"></div>
                     )}
                   </td>
                 </tr>
@@ -135,8 +142,8 @@ export default function GoldRateDetails() {
                         <input type="number" name="today_rate" value={newRateData.today_rate} onChange={handleAddNewChange} step="0.01" className={inputStyle} placeholder="Enter rate"/>
                     </td>
                     <td className={`${cellStyle} text-center`}>
-                        <button onClick={handleAddNewSubmit} className="flex items-center justify-center w-full bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500">
-                            <PlusIcon className="h-5 w-5 mr-2" /> Add
+                        <button onClick={handleAddNewSubmit} className={buttonStyle}>
+                            <PlusIcon className="h-5 w-5 mr-2" /> Add Rate
                         </button>
                     </td>
                 </tr>

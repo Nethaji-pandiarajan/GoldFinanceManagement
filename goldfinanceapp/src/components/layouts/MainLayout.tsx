@@ -6,8 +6,8 @@ import { useState } from 'react';
 import OrnamentDetails from '../OrnamentDetails';
 import GoldKaratDetails from '../GoldKaratDetails';
 import GoldRateDetails from '../GoldRateDetails';
-/*import BackgroundImage from '../../assets/mainlayoutbg3.png';*/
-
+import ProcessingAmount from '../ProcessingAmount';
+import Breadcrumb from '../Breadcrumb';
 type MainLayoutProps = {
   onLogout: () => void;
   userRole: string | null;
@@ -28,6 +28,8 @@ export default function MainLayout({ onLogout , userRole }: MainLayoutProps) {
         return <GoldRateDetails />;
       case 'Dashboard':
         return <Dashboard />;
+      case 'Processing Amount':
+        return <ProcessingAmount />;
       default:
         return <Dashboard />;
     }
@@ -48,6 +50,7 @@ export default function MainLayout({ onLogout , userRole }: MainLayoutProps) {
             userRole={userRole}
           />
           <main className="flex-1 p-8 overflow-y-auto">
+            <Breadcrumb currentPage={activeItem} />
             {renderContent()}
           </main>
         </div>

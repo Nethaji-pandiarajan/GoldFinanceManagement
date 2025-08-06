@@ -1,29 +1,35 @@
 // src/components/TopNavbar.tsx
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import {  UserCircleIcon, ArrowLeftOnRectangleIcon ,} from '@heroicons/react/24/solid';
+import {  UserCircleIcon, ArrowLeftOnRectangleIcon ,ChevronDownIcon} from '@heroicons/react/24/solid';
 import ConfirmationDialog from './ConfirmationDialog';
+import clsx from 'clsx';
 type TopNavbarProps = {
   onLogout: () => void;
 };
 
 export default function TopNavbar({ onLogout }: TopNavbarProps) {
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [isAccountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const [isReportsDropdownOpen, setReportsDropdownOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
+  const reportsDropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
+        setAccountDropdownOpen(false);
+      }
+      if (reportsDropdownRef.current && !reportsDropdownRef.current.contains(event.target as Node)) {
+        setReportsDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [dropdownRef]);
+  }, []);
   const handleLogoutClick = () => {
-    setDropdownOpen(false);
+    setAccountDropdownOpen(false);
     setShowLogoutConfirm(true);
   };
   return (
@@ -41,31 +47,50 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
           Maaya Gold Finance
         </h1>
         <div className="flex items-center space-x-6">
-          <button className="text-[#c69909] font-semibold transition-colors">
-            Reports
-          </button>
-
-          {/* My Account Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative" ref={reportsDropdownRef}>
+            <button
+              onClick={() => setReportsDropdownOpen(!isReportsDropdownOpen)}
+              className="flex items-center space-x-1.5 text-[#c69909] font-semibold transition-colors hover:text-white"
+            >
+              <span>Reports</span>
+              <ChevronDownIcon className={clsx('h-4 w-4 transition-transform', isReportsDropdownOpen && 'rotate-180')} />
+            </button>
+            {isReportsDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-48 bg-[#1f2628] rounded-md shadow-lg py-1 z-20">
+                <Link
+                  to="#" 
+                  className="block px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315] hover:text-white"
+                >
+                  Closed
+                </Link>
+                <Link
+                  to="#"
+                  className="block px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315] hover:text-white"
+                >
+                  Pending
+                </Link>
+              </div>
+            )}
+          </div>
+          <div className="relative" ref={accountDropdownRef}>
               <button
-                  onClick={() => setDropdownOpen(!isDropdownOpen)}
+                  onClick={() => setAccountDropdownOpen(!isAccountDropdownOpen)}
                   className="group bg-[#1f2628] p-2 rounded-full transition-colors hover:bg-[#c69909]"
               >
                   <UserCircleIcon className="h-6 w-6 text-[#c69909] transition-colors group-hover:text-black" />
             </button>
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
+            {isAccountDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-[#1f2628] rounded-md shadow-lg py-1 z-20">
                 <Link
                   to="#"
-                  className="flex items-center px-4 py-2 text-sm text-[#c69909] hover:text-[#ffffff]"
+                  className="flex items-center px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315] hover:text-white"
                 >
                   <UserCircleIcon className="h-5 w-5 mr-3" />
                   Profile
                 </Link>
                 <button
                   onClick={handleLogoutClick}
-                  className="flex items-center w-full text-left px-4 py-2 text-sm text-[#c69909] hover:text-red-600"
+                  className="flex items-center w-full text-left px-4 py-2 text-sm text-[#c69909] hover:bg-red-500 hover:text-white"
                 >
                   <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3" />
                   Logout
