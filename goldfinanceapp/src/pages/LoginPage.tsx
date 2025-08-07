@@ -1,34 +1,45 @@
 // src/pages/LoginPage.tsx
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import AuthLayout from '../components/AuthLayout';
-import logo from '../assets/logo.png';
-import { UserCircleIcon, LockClosedIcon } from '@heroicons/react/24/solid';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import AuthLayout from "../components/AuthLayout";
+import logo from "../assets/logo.png";
+import { UserCircleIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-function LoginPage({ onLoginSuccess }: { onLoginSuccess: (token: string) => void }) {
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+function LoginPage({
+  onLoginSuccess,
+}: {
+  onLoginSuccess: (token: string) => void;
+}) {
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const inputStyle = "w-full bg-transparent text-white placeholder-white/60 border-0 border-b-2 border-white/40 focus:outline-none focus:ring-0 focus:border-white rounded-none py-2 px-8 transition-colors duration-300";
-  const iconStyle = "absolute left-1 top-1/2 -translate-y-1/2 h-5 w-5 text-[#c69909] pointer-events-none";
+  const inputStyle =
+    "w-full bg-transparent text-white placeholder-white/60 border-0 border-b-2 border-white/40 focus:outline-none focus:ring-0 focus:border-white rounded-none py-2 px-8 transition-colors duration-300";
+  const iconStyle =
+    "absolute left-1 top-1/2 -translate-y-1/2 h-5 w-5 text-[#c69909] pointer-events-none";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    if (identifier.toLowerCase() === 'sathvik' && password === 'sathvik') {
-      navigate('/signup');
+    setError("");
+    if (identifier.toLowerCase() === "sathvik" && password === "sathvik") {
+      navigate("/signup");
       return;
     }
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, { identifier, password });
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        identifier,
+        password,
+      });
       onLoginSuccess(response.data.token);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
     }
   };
 
@@ -41,10 +52,17 @@ function LoginPage({ onLoginSuccess }: { onLoginSuccess: (token: string) => void
         <h2 className="text-3xl font-bold text-[#c69909] text-center mb-8">
           Maaya Gold Finance
         </h2>
-        {error && <p className="bg-red-500/50 text-white text-sm p-3 rounded-md mb-4">{error}</p>}
+        {error && (
+          <p className="bg-red-500/50 text-white text-sm p-3 rounded-md mb-4">
+            {error}
+          </p>
+        )}
         <form onSubmit={handleSubmit} autoComplete="off">
           <div className="mb-6">
-            <label className="block text-[#c69909] text-sm font-bold mb-2" htmlFor="email">
+            <label
+              className="block text-[#c69909] text-sm font-bold mb-2"
+              htmlFor="email"
+            >
               Email or Username
             </label>
             <div className="relative">
@@ -62,10 +80,13 @@ function LoginPage({ onLoginSuccess }: { onLoginSuccess: (token: string) => void
           </div>
 
           <div className="mb-2">
-            <label className="block text-[#c69909] text-sm font-bold mb-2" htmlFor="password">
+            <label
+              className="block text-[#c69909] text-sm font-bold mb-2"
+              htmlFor="password"
+            >
               Password
             </label>
-            <div className="relative"> 
+            <div className="relative">
               <LockClosedIcon className={iconStyle} />
               <input
                 className={inputStyle}
@@ -80,7 +101,10 @@ function LoginPage({ onLoginSuccess }: { onLoginSuccess: (token: string) => void
           </div>
 
           <div className="text-right mb-6">
-            <a className="inline-block align-baseline font-bold text-sm text-[#c69909] hover:text-white" href="#">
+            <a
+              className="inline-block align-baseline font-bold text-sm text-[#c69909] hover:text-white"
+              href="#"
+            >
               Forgot password?
             </a>
           </div>
