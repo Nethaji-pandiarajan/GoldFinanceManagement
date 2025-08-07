@@ -1,10 +1,14 @@
 // src/components/AlertNotification.tsx
-import React, { useEffect } from 'react';
-import { CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
-import clsx from 'clsx';
+import { useEffect } from "react";
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/solid";
+import clsx from "clsx";
 
 type AlertNotificationProps = {
-  type: 'success' | 'error' | 'alert';
+  type: "success" | "error" | "alert";
   message: string;
   onClose: () => void;
 };
@@ -12,19 +16,23 @@ type AlertNotificationProps = {
 const alertConfig = {
   success: {
     Icon: CheckCircleIcon,
-    iconColor: 'text-green-400',
+    iconColor: "text-green-400",
   },
   error: {
     Icon: XCircleIcon,
-    iconColor: 'text-red-400',
+    iconColor: "text-red-400",
   },
   alert: {
     Icon: ExclamationTriangleIcon,
-    iconColor: 'text-yellow-400',
+    iconColor: "text-yellow-400",
   },
 };
 
-export default function AlertNotification({ type, message, onClose }: AlertNotificationProps) {
+export default function AlertNotification({
+  type,
+  message,
+  onClose,
+}: AlertNotificationProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -48,7 +56,7 @@ export default function AlertNotification({ type, message, onClose }: AlertNotif
         `}
       </style>
       <div className="flex flex-col items-center gap-6 animate-fade-in-scale">
-        <Icon className={clsx('h-20 w-20', iconColor)} />
+        <Icon className={clsx("h-20 w-20", iconColor)} />
         <p className="text-2xl font-bold text-white text-center max-w-md">
           {message}
         </p>

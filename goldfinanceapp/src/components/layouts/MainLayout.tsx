@@ -1,34 +1,34 @@
-import Sidebar from '../Sidebar';
-import Dashboard from '../Dashboard';
-import TopNavbar from '../TopNavbar';
-import CustomerDetails from '../CustomerDetails';
-import { useState } from 'react';
-import OrnamentDetails from '../OrnamentDetails';
-import GoldKaratDetails from '../GoldKaratDetails';
-import GoldRateDetails from '../GoldRateDetails';
-import ProcessingAmount from '../ProcessingAmount';
-import Breadcrumb from '../Breadcrumb';
+import Sidebar from "../Sidebar";
+import Dashboard from "../Dashboard";
+import TopNavbar from "../TopNavbar";
+import CustomerDetails from "../CustomerDetails";
+import { useState } from "react";
+import OrnamentDetails from "../OrnamentDetails";
+import GoldKaratDetails from "../GoldKaratDetails";
+import GoldRateDetails from "../GoldRateDetails";
+import ProcessingAmount from "../ProcessingAmount";
+import Breadcrumb from "../Breadcrumb";
 type MainLayoutProps = {
   onLogout: () => void;
   userRole: string | null;
 };
 
-export default function MainLayout({ onLogout , userRole }: MainLayoutProps) {
-  const [activeItem, setActiveItem] = useState('Dashboard');
+export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
+  const [activeItem, setActiveItem] = useState("Dashboard");
   const [isSidebarExpanded, setSidebarExpanded] = useState(true);
   const renderContent = () => {
     switch (activeItem) {
-      case 'Customer Details':
+      case "Customer Details":
         return <CustomerDetails />;
-      case 'Ornaments Details':
+      case "Ornaments Details":
         return <OrnamentDetails />;
-      case 'Gold Karat Details':
+      case "Gold Karat Details":
         return <GoldKaratDetails />;
-      case 'Gold Rate':
+      case "Gold Rate":
         return <GoldRateDetails />;
-      case 'Dashboard':
+      case "Dashboard":
         return <Dashboard />;
-      case 'Processing Amount':
+      case "Processing Amount":
         return <ProcessingAmount />;
       default:
         return <Dashboard />;
@@ -42,8 +42,8 @@ export default function MainLayout({ onLogout , userRole }: MainLayoutProps) {
         </div>
 
         <div className="flex pt-14 h-full">
-          <Sidebar 
-            activeItem={activeItem} 
+          <Sidebar
+            activeItem={activeItem}
             setActiveItem={setActiveItem}
             isExpanded={isSidebarExpanded}
             setIsExpanded={setSidebarExpanded}

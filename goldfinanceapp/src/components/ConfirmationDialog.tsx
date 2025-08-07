@@ -1,19 +1,24 @@
 // src/components/ConfirmationDialog.tsx
-import React from 'react';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
-import clsx from 'clsx';
+import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
+import clsx from "clsx";
 
 type ConfirmationDialogProps = {
   message: string;
-  type: 'delete' | 'logout';
+  type: "delete" | "logout";
   onConfirm: () => void;
   onCancel: () => void;
 };
 
-export default function ConfirmationDialog({ message, type, onConfirm, onCancel }: ConfirmationDialogProps) {
-  const confirmButtonColor = type === 'delete' 
-    ? 'bg-red-600 hover:bg-red-700' 
-    : 'bg-[#c69909] hover:bg-yellow-500';
+export default function ConfirmationDialog({
+  message,
+  type,
+  onConfirm,
+  onCancel,
+}: ConfirmationDialogProps) {
+  const confirmButtonColor =
+    type === "delete"
+      ? "bg-red-600 hover:bg-red-700"
+      : "bg-[#c69909] hover:bg-yellow-500";
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
@@ -32,7 +37,7 @@ export default function ConfirmationDialog({ message, type, onConfirm, onCancel 
           <button
             onClick={onConfirm}
             className={clsx(
-              'px-8 py-2 rounded-lg text-black font-semibold transition-colors',
+              "px-8 py-2 rounded-lg text-black font-semibold transition-colors",
               confirmButtonColor
             )}
           >

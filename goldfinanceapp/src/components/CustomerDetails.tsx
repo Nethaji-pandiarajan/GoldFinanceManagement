@@ -1,18 +1,18 @@
 // src/components/CustomerDetails.tsx
-import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import DataTable from 'datatables.net-react';
-import DT from 'datatables.net-dt';
-import AddCustomerForm from './AddCustomerForm';
-import ViewCustomerModal from './ViewCustomerModal';
-import { PlusIcon } from '@heroicons/react/24/solid';
-import AlertNotification from './AlertNotification'; 
-import ConfirmationDialog from './ConfirmationDialog';
+import { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-dt";
+import AddCustomerForm from "./AddCustomerForm";
+import ViewCustomerModal from "./ViewCustomerModal";
+import { PlusIcon } from "@heroicons/react/24/solid";
+import AlertNotification from "./AlertNotification";
+import ConfirmationDialog from "./ConfirmationDialog";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-DataTable.use(DT); 
+DataTable.use(DT);
 type AlertState = {
   show: boolean;
-  type: 'success' | 'error' | 'alert';
+  type: "success" | "error" | "alert";
   message: string;
 } | null;
 export default function CustomerDetails() {
@@ -27,72 +27,93 @@ export default function CustomerDetails() {
     try {
       await axios.delete(`${API_BASE_URL}/api/customers/${customerToDelete}`);
       tableRef.current?.dt().ajax.reload();
-      setAlert({ show: true, type: 'success', message: 'Customer deleted successfully!' });
+      setAlert({
+        show: true,
+        type: "success",
+        message: "Customer deleted successfully!",
+      });
     } catch (error) {
-      console.error('Failed to delete customer:', error);
-      setAlert({ show: true, type: 'error', message: 'Could not delete customer.' });
+      console.error("Failed to delete customer:", error);
+      setAlert({
+        show: true,
+        type: "error",
+        message: "Could not delete customer.",
+      });
     } finally {
       setCustomerToDelete(null);
     }
   };
-  const handleActionClick = async (action: 'view' | 'edit' | 'delete' | 'notify', uuid: string) => {
-    if (action === 'notify') {
+  const handleActionClick = async (
+    action: "view" | "edit" | "delete" | "notify",
+    uuid: string
+  ) => {
+    if (action === "notify") {
       return;
-    }else if (action === 'delete') {
-      setCustomerToDelete(uuid); 
+    } else if (action === "delete") {
+      setCustomerToDelete(uuid);
     } else {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/customers/${uuid}`);
-        if (action === 'view') {
+        const response = await axios.get(
+          `${API_BASE_URL}/api/customers/${uuid}`
+        );
+        if (action === "view") {
           setViewData(response.data);
-        } else if (action === 'edit') {
-          setEditData(response.data); 
+        } else if (action === "edit") {
+          setEditData(response.data);
         }
       } catch (error) {
-        console.error('Failed to fetch customer data for action:', error);
-        setAlert({ show: true, type: 'error', message: 'Could not delete customer.' });
+        console.error("Failed to fetch customer data for action:", error);
+        setAlert({
+          show: true,
+          type: "error",
+          message: "Could not delete customer.",
+        });
       }
     }
   };
   useEffect(() => {
-    const tableElement = document.getElementById('customerTable');
+    const tableElement = document.getElementById("customerTable");
     if (tableElement) {
       const listener = (event: Event) => {
         const target = event.target as HTMLElement;
-        const button = target.closest('button[data-action]');
+        const button = target.closest("button[data-action]");
         if (button) {
-          const action = button.getAttribute('data-action') as 'view' | 'edit' | 'delete';
-          const uuid = button.getAttribute('data-uuid');
+          const action = button.getAttribute("data-action") as
+            | "view"
+            | "edit"
+            | "delete";
+          const uuid = button.getAttribute("data-uuid");
           if (action && uuid) {
             handleActionClick(action, uuid);
           }
         }
       };
-      
-      tableElement.addEventListener('click', listener);
-      return () => tableElement.removeEventListener('click', listener);
+
+      tableElement.addEventListener("click", listener);
+      return () => tableElement.removeEventListener("click", listener);
     }
   }, []);
   const tableColumns = [
     {
-      title: 'S.No',
+      title: "S.No",
       render: function (data: any, type: any, row: any, meta: any) {
         return meta.row + 1;
       },
       orderable: false,
       searchable: false,
     },
-    { title: 'Customer Name', data: 'customer_name' },
-    { title: 'Phone Number', data: 'phone_number' },
-    { title: 'Gender', data: 'gender' },
+    { title: "Customer Name", data: "customer_name" },
+    { title: "Phone Number", data: "phone_number" },
+    { title: "Gender", data: "gender" },
     {
-      title: 'DOB',
-      data: 'dob',
-      render: (data: string) => data ? new Date(data).toLocaleDateString() : 'N/A'
+      title: "DOB",
+      data: "dob",
+      render: (data: string) =>
+        data ? new Date(data).toLocaleDateString() : "N/A",
     },
     {
-      title: 'Notify',
-      data: 'customer_uuid',
+      title: "Notify",
+      data: "customer_uuid",
       orderable: false,
       searchable: false,
       render: (data: string) => {
@@ -102,11 +123,11 @@ export default function CustomerDetails() {
             <button title="Send Notification" data-action="notify" data-uuid="${data}" class="p-2 rounded-full text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200 transition-colors">${notifyIcon}</button>
           </div>
         `;
-      }
+      },
     },
     {
-      title: 'Actions',
-      data: 'customer_uuid',
+      title: "Actions",
+      data: "customer_uuid",
       orderable: false,
       render: (data: string) => {
         const viewIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a.75.75 0 010-1.113zM12.001 18a5.25 5.25 0 100-10.5 5.25 5.25 0 000 10.5z" clip-rule="evenodd" /></svg>`;
@@ -118,15 +139,18 @@ export default function CustomerDetails() {
             <button title="Delete Customer" data-action="delete" data-uuid="${data}" class="p-2 rounded-full text-red-500 hover:bg-red-500/20 hover:text-red-300 transition-colors">${deleteIcon}</button>
           </div>`;
       },
-    }
+    },
   ];
 
-  const handleSuccess = (mode : 'add' | 'edit') => {
+  const handleSuccess = (mode: "add" | "edit") => {
     setAddModalOpen(false);
     setEditData(null);
-    tableRef.current?.dt().ajax.reload(null, false); 
-    const message = mode === 'add' ? 'Customer created successfully!' : 'Customer updated successfully!';
-    setAlert({ show: true, type: 'success', message: message });
+    tableRef.current?.dt().ajax.reload(null, false);
+    const message =
+      mode === "add"
+        ? "Customer created successfully!"
+        : "Customer updated successfully!";
+    setAlert({ show: true, type: "success", message: message });
   };
 
   return (
@@ -138,9 +162,29 @@ export default function CustomerDetails() {
           onClose={() => setAlert(null)}
         />
       )}
-      {isAddModalOpen && <AddCustomerForm mode="add" onClose={() => setAddModalOpen(false)} onSuccess={ ()=>handleSuccess('add')} setAlert={setAlert} />}
-      {editData && <AddCustomerForm mode="edit" initialData={editData} onClose={() => setEditData(null)} onSuccess={() => handleSuccess('edit')} setAlert={setAlert} />}
-      {viewData && <ViewCustomerModal customer={viewData} onClose={() => setViewData(null)} />}
+      {isAddModalOpen && (
+        <AddCustomerForm
+          mode="add"
+          onClose={() => setAddModalOpen(false)}
+          onSuccess={() => handleSuccess("add")}
+          setAlert={setAlert}
+        />
+      )}
+      {editData && (
+        <AddCustomerForm
+          mode="edit"
+          initialData={editData}
+          onClose={() => setEditData(null)}
+          onSuccess={() => handleSuccess("edit")}
+          setAlert={setAlert}
+        />
+      )}
+      {viewData && (
+        <ViewCustomerModal
+          customer={viewData}
+          onClose={() => setViewData(null)}
+        />
+      )}
       {customerToDelete && (
         <ConfirmationDialog
           type="delete"
@@ -149,27 +193,29 @@ export default function CustomerDetails() {
           onCancel={() => setCustomerToDelete(null)}
         />
       )}
-       {isAddModalOpen && 
-        <AddCustomerForm 
-          mode="add" 
-          onClose={() => setAddModalOpen(false)} 
-          onSuccess={() => handleSuccess('add')} 
+      {isAddModalOpen && (
+        <AddCustomerForm
+          mode="add"
+          onClose={() => setAddModalOpen(false)}
+          onSuccess={() => handleSuccess("add")}
           setAlert={setAlert}
         />
-      }
-      {editData && 
-        <AddCustomerForm 
-          mode="edit" 
-          initialData={editData} 
-          onClose={() => setEditData(null)} 
-          onSuccess={() => handleSuccess('edit')} 
+      )}
+      {editData && (
+        <AddCustomerForm
+          mode="edit"
+          initialData={editData}
+          onClose={() => setEditData(null)}
+          onSuccess={() => handleSuccess("edit")}
           setAlert={setAlert}
         />
-      }
+      )}
       <div className="bg-[#111315] backdrop-blur-md p-6 rounded-lg shadow-lg border border-[#111315]">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-semi-bold mb-20 text-[#c69909]">Customer Details</h1>
-          <button 
+          <h1 className="text-2xl font-semi-bold mb-20 text-[#c69909]">
+            Customer Details
+          </h1>
+          <button
             onClick={() => setAddModalOpen(true)}
             className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors"
           >
@@ -177,14 +223,14 @@ export default function CustomerDetails() {
             Add Customer
           </button>
         </div>
-        
+
         <DataTable
           id="customerTable"
           ref={tableRef}
           className="display w-full"
           ajax={{
             url: `${API_BASE_URL}/api/customers`,
-            dataSrc: ''
+            dataSrc: "",
           }}
           columns={tableColumns}
         >

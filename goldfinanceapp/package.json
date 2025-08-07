@@ -15,6 +15,7 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "@types/uuid": "^10.0.0",
+    "ajax": "^0.0.4",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "datatables.net-dt": "^2.3.2",

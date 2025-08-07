@@ -1,6 +1,6 @@
 // src/components/AuthLayout.tsx
-import React from 'react';
-import BackgroundImage from '../assets/authbackground2.png';
+import React from "react";
+import BackgroundImage from "../assets/authbackground2.png";
 
 type AuthLayoutProps = {
   children: React.ReactNode;
@@ -23,8 +23,7 @@ function AuthLayout({ children }: AuthLayoutProps) {
           <div className="w-full md:w-1/2 flex justify-center p-4">
             {children}
           </div>
-          <div className="w-full md:w-1/2 hidden md:block">
-          </div>
+          <div className="w-full md:w-1/2 hidden md:block"></div>
         </div>
       </div>
     </div>
