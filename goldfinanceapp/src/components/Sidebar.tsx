@@ -10,12 +10,14 @@ import {
   CurrencyDollarIcon,
   CogIcon,
   Squares2X2Icon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/solid";
 import clsx from "clsx";
 
 const originalNavigation = [
   { name: "Dashboard", icon: Squares2X2Icon, type: "secondary" },
   { name: "New Loan Application", icon: DocumentPlusIcon, type: "primary" },
+  { name: 'Loan Details', icon: DocumentTextIcon, type: 'default' },
   { name: "Customer Details", icon: UserGroupIcon, type: "secondary" },
   { name: "Ornaments Details", icon: BuildingStorefrontIcon, type: "default" },
   { name: "Gold Karat Details", icon: ScaleIcon, type: "default" },

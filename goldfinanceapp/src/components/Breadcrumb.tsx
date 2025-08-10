@@ -9,6 +9,7 @@ import {
   CurrencyDollarIcon,
   CogIcon,
 } from "@heroicons/react/24/outline";
+
 const pageIcons: { [key: string]: React.ElementType } = {
   Dashboard: Squares2X2Icon,
   "Customer Details": UserGroupIcon,
@@ -24,26 +25,27 @@ type BreadcrumbProps = {
 
 export default function Breadcrumb({ currentPage }: BreadcrumbProps) {
   const Icon = pageIcons[currentPage] || Squares2X2Icon;
+
   return (
     <nav
       className="flex items-center text-sm font-semibold mb-6"
       aria-label="Breadcrumb"
     >
-      <ol className="inline-flex items-center space-x-1 md:space-x-3">
+      <ol className="inline-flex items-center space-x-1 md:space-x-2">
         <li className="inline-flex items-center">
           <a
             href="#"
             className="inline-flex items-center text-gray-300 hover:text-white"
           >
-            <HomeIcon className="w-4 h-4 mr-2" />
+            <HomeIcon className="w-5 h-3.5 mr-2" />
             Home
           </a>
         </li>
-        <li>
+        <li className="inline-flex items-center">
           <div className="flex items-center">
-            <ChevronRightIcon className="w-5 h-5 text-gray-500" />
-            <span className="ml-1 text-white inline-flex items-center">
-              <Icon className="w-4 h-4 mr-2" />
+            <ChevronRightIcon className="w-5 h-5 text-gray-500 mx-1" />
+            <span className="text-white inline-flex items-center">
+              <Icon className="w-5 h-4 mr-2" />
               {currentPage}
             </span>
           </div>

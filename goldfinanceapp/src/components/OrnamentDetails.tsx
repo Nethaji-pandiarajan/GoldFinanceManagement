@@ -86,6 +86,7 @@ export default function OrnamentDetails() {
     },
     { title: "Ornament Type", data: "ornament_type" },
     { title: "Ornament Name", data: "ornament_name" },
+    { title: 'Material Type', data: 'material_type' },
     { title: "Description", data: "description" },
     {
       title: "Actions",
@@ -188,6 +189,7 @@ export default function OrnamentDetails() {
               <th>S.No</th>
               <th>Ornament Type</th>
               <th>Ornament Name</th>
+              <th>Material Type</th> 
               <th>Description</th>
               <th>Actions</th>
             </tr>

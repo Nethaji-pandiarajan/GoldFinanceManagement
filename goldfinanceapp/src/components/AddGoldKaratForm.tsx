@@ -8,7 +8,7 @@ type AlertState = {
   type: "success" | "error" | "alert";
   message: string;
 } | null;
-
+const karatOptions = ["24K", "22K", "20K", "18K", "14K", "10K", "Others"];
 type AddGoldKaratFormProps = {
   mode: "add" | "edit";
   initialData?: any;
@@ -25,19 +25,25 @@ export default function AddGoldKaratForm({
   setAlert,
 }: AddGoldKaratFormProps) {
   const [formData, setFormData] = useState({
-    karat_name: "",
     loan_percentage: "",
     description: "",
   });
   const [loading, setLoading] = useState(false);
-
+  const [selectedKarat, setSelectedKarat] = useState("");
+  const [customKaratName, setCustomKaratName] = useState("");
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setFormData({
-        karat_name: initialData.karat_name || "",
         loan_percentage: initialData.loan_percentage || "",
         description: initialData.description || "",
       });
+      const isPredefined = karatOptions.includes(initialData.karat_name);
+      if (isPredefined) {
+        setSelectedKarat(initialData.karat_name);
+      } else {
+        setSelectedKarat("Others");
+        setCustomKaratName(initialData.karat_name || "");
+      }
     }
   }, [mode, initialData]);
 
@@ -50,14 +56,29 @@ export default function AddGoldKaratForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const finalKaratName =
+      selectedKarat === "Others" ? customKaratName : selectedKarat;
+    if (!finalKaratName) {
+      setAlert({
+        show: true,
+        type: "error",
+        message: "Karat Name is required.",
+      });
+      setLoading(false);
+      return;
+    }
+    const submissionData = {
+      ...formData,
+      karat_name: finalKaratName,
+    };
     try {
       if (mode === "edit") {
         await axios.put(
           `${API_BASE_URL}/api/karats/${initialData.karat_id}`,
-          formData
+          submissionData
         );
       } else {
-        await axios.post(`${API_BASE_URL}/api/karats`, formData);
+        await axios.post(`${API_BASE_URL}/api/karats`, submissionData);
       }
       onSuccess();
     } catch (err: any) {
@@ -103,16 +124,29 @@ export default function AddGoldKaratForm({
           <div className="space-y-4">
             <div>
               <label className={labelStyle}>Karat Name*</label>
-              <input
-                type="text"
-                name="karat_name"
-                value={formData.karat_name}
-                onChange={handleChange}
-                className={inputStyle}
+              <select 
+                value={selectedKarat} 
+                onChange={(e) => setSelectedKarat(e.target.value)} 
+                className={inputStyle} 
                 required
-                placeholder="e.g., 22K, 24K, 18K"
-              />
+              >
+                <option value="">Select a Karat</option>
+                {karatOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
             </div>
+            {selectedKarat === 'Others' && (
+              <div>
+                <label className={labelStyle}>Custom Karat Name*</label>
+                <input 
+                  type="text" 
+                  value={customKaratName} 
+                  onChange={(e) => setCustomKaratName(e.target.value)} 
+                  className={inputStyle} 
+                  required 
+                  placeholder="e.g., 9K, Custom Alloy" 
+                />
+              </div>
+            )}
             <div>
               <label className={labelStyle}>Loan Percentage (%)*</label>
               <input

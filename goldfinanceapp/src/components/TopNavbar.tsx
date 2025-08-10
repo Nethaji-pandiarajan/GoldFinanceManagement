@@ -10,9 +10,10 @@ import ConfirmationDialog from "./ConfirmationDialog";
 import clsx from "clsx";
 type TopNavbarProps = {
   onLogout: () => void;
+  setActiveItem: (name: string) => void;
 };
 
-export default function TopNavbar({ onLogout }: TopNavbarProps) {
+export default function TopNavbar({ onLogout, setActiveItem }: TopNavbarProps) {
   const [isAccountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const [isReportsDropdownOpen, setReportsDropdownOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -72,18 +73,24 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
             </button>
             {isReportsDropdownOpen && (
               <div className="absolute left-0 mt-2 w-48 bg-[#1f2628] rounded-md shadow-lg py-1 z-20">
-                <Link
-                  to="#"
-                  className="block px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315] hover:text-white"
+                <button
+                  onClick={() => {
+                    setActiveItem("Closed Loans");
+                    setReportsDropdownOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315]"
                 >
                   Closed
-                </Link>
-                <Link
-                  to="#"
-                  className="block px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315] hover:text-white"
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveItem("Pending Loans");
+                    setReportsDropdownOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315]"
                 >
                   Pending
-                </Link>
+                </button>
               </div>
             )}
           </div>
