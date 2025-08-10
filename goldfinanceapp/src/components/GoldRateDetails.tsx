@@ -24,7 +24,7 @@ export default function GoldRateDetails() {
   const fetchRates = async () => {
     try {
       const ratesRes = await axios.get(`${API_BASE_URL}/api/gold-rates`);
-      const karatsRes = await axios.get(`${API_BASE_URL}/api/karats-list`);
+      const karatsRes = await axios.get(`${API_BASE_URL}/api/karats/list`);
       setRates(ratesRes.data);
       setKarats(karatsRes.data);
     } catch (error) {

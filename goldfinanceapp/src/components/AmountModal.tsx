@@ -56,7 +56,7 @@ export default function AmountModal({
         user_id: user.user_id,
         amount: isAddAction ? numericAmount : -numericAmount,
       };
-      await axios.post(`${API_BASE_URL}/api/processed-amounts`, payload);
+      await axios.post(`${API_BASE_URL}/api/users/processed-amounts`, payload);
       onSuccess();
     } catch (err: any) {
       const errorMessage =

@@ -50,9 +50,6 @@ type AddCustomerFormProps = {
   setAlert: (alert: AlertState) => void;
 };
 
-function setAlert(arg0: { show: boolean; type: string; message: any }) {
-  throw new Error("Function not implemented.");
-}
 export default function AddCustomerForm({
   mode,
   initialData,

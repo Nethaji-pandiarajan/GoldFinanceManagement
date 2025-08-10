@@ -9,6 +9,8 @@ type AlertState = {
   message: string;
 } | null;
 
+const materialOptions = ["Gold", "Silver", "Platinum", "Bronze", "Other"];
+
 type AddOrnamentFormProps = {
   mode: "add" | "edit";
   initialData?: any;
@@ -27,6 +29,7 @@ export default function AddOrnamentForm({
   const [formData, setFormData] = useState({
     ornament_type: "",
     ornament_name: "",
+    material_type: "",
     description: "",
   });
   const [loading, setLoading] = useState(false);
@@ -36,13 +39,14 @@ export default function AddOrnamentForm({
       setFormData({
         ornament_type: initialData.ornament_type || "",
         ornament_name: initialData.ornament_name || "",
+        material_type: initialData.material_type || "",
         description: initialData.description || "",
       });
     }
   }, [mode, initialData]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -124,6 +128,23 @@ export default function AddOrnamentForm({
                 required
                 placeholder="e.g., Gold Wedding Ring"
               />
+            </div>
+            <div>
+              <label className={labelStyle}>Material Type*</label>
+              <select
+                name="material_type"
+                value={formData.material_type}
+                onChange={handleChange}
+                className={inputStyle}
+                required
+              >
+                <option value="">Select a Material</option>
+                {materialOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelStyle}>Description</label>

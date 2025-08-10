@@ -8,6 +8,10 @@ import GoldKaratDetails from "../GoldKaratDetails";
 import GoldRateDetails from "../GoldRateDetails";
 import ProcessingAmount from "../ProcessingAmount";
 import Breadcrumb from "../Breadcrumb";
+import NewLoanApplication from "../NewLoanApplication";
+import LoanDetails from '../LoanDetails';
+import PendingLoans from '../PendingLoans';
+import ClosedLoans from '../ClosedLoans';
 type MainLayoutProps = {
   onLogout: () => void;
   userRole: string | null;
@@ -18,6 +22,10 @@ export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
   const [isSidebarExpanded, setSidebarExpanded] = useState(true);
   const renderContent = () => {
     switch (activeItem) {
+      case 'Loan Details':
+        return <LoanDetails setActiveItem={setActiveItem} />; 
+      case 'New Loan Application':
+        return <NewLoanApplication />;
       case "Customer Details":
         return <CustomerDetails />;
       case "Ornaments Details":
@@ -30,6 +38,11 @@ export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
         return <Dashboard />;
       case "Processing Amount":
         return <ProcessingAmount />;
+      case 'Pending Loans':
+        return <PendingLoans />;
+      case 'Closed Loans':
+        return <ClosedLoans />;
+
       default:
         return <Dashboard />;
     }
@@ -38,7 +51,7 @@ export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
     <div className="h-screen bg-[#1f2628] bg-cover bg-center ">
       <div className="relative h-full w-full bg-black/10">
         <div className="fixed top-0 left-0 right-0 z-20">
-          <TopNavbar onLogout={onLogout} />
+          <TopNavbar onLogout={onLogout} setActiveItem={setActiveItem} />
         </div>
 
         <div className="flex pt-14 h-full">
