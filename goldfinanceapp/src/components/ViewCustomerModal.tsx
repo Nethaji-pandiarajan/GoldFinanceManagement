@@ -1,4 +1,4 @@
-import React from "react";
+import _React from "react";
 
 const bufferToBase64 = (buffer: { type: string; data: number[] }) => {
   if (!buffer || buffer.type !== "Buffer") return null;

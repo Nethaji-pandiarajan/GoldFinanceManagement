@@ -1,13 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config(); 
-
-
+const morgan = require("morgan");
+const logger = require("./config/logger"); 
+const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 4000;
-
+app.use(errorHandler);
 app.use(cors());
 app.use(express.json());
+app.use(morgan('combined', { stream: logger.stream }));
 const authRoutes = require("./routes/auth.routes");
 const customerRoutes = require("./routes/customer.routes");
 const ornamentRoutes = require("./routes/ornament.routes");

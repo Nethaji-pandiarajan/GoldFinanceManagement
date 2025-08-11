@@ -96,7 +96,7 @@ export default function CustomerDetails() {
   const tableColumns = [
     {
       title: "S.No",
-      render: function (data: any, type: any, row: any, meta: any) {
+      render: function (_data: any, _type: any, _row: any, meta: any) {
         return meta.row + 1;
       },
       orderable: false,
@@ -212,7 +212,7 @@ export default function CustomerDetails() {
       )}
       <div className="bg-[#111315] backdrop-blur-md p-6 rounded-lg shadow-lg border border-[#111315]">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-semi-bold mb-20 text-[#c69909]">
+          <h1 className="text-2xl font-bold mb-20 text-[#c69909]">
             Customer Details
           </h1>
           <button

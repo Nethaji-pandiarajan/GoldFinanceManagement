@@ -11,5 +11,5 @@ router.post("/check-phone", utilityController.checkPhone);
 router.get("/customers-list", customerController.getCustomersList);
 router.get("/ornaments-list", ornamentController.getOrnamentsList);
 router.get("/karats-list", karatController.getKaratsList);
-
+router.get("/nominees-list", utilityController.getNomineesList);
 module.exports = router;
