@@ -1,15 +1,13 @@
 // src/components/AddOrnamentForm.tsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from "../api";
 type AlertState = {
   show: boolean;
   type: "success" | "error" | "alert";
   message: string;
 } | null;
 
-const materialOptions = ["Gold", "Silver", "Platinum", "Bronze", "Other"];
+const materialOptions = ["Gold", "Silver", "Bronze", "Other"];
 
 type AddOrnamentFormProps = {
   mode: "add" | "edit";
@@ -29,7 +27,7 @@ export default function AddOrnamentForm({
   const [formData, setFormData] = useState({
     ornament_type: "",
     ornament_name: "",
-    material_type: "",
+    material_type: "Gold",
     description: "",
   });
   const [loading, setLoading] = useState(false);
@@ -39,7 +37,7 @@ export default function AddOrnamentForm({
       setFormData({
         ornament_type: initialData.ornament_type || "",
         ornament_name: initialData.ornament_name || "",
-        material_type: initialData.material_type || "",
+        material_type: initialData.material_type || "Gold",
         description: initialData.description || "",
       });
     }
@@ -56,12 +54,12 @@ export default function AddOrnamentForm({
     setLoading(true);
     try {
       if (mode === "edit") {
-        await axios.put(
-          `${API_BASE_URL}/api/ornaments/${initialData.ornament_id}`,
+        await api.put(
+          `/api/ornaments/${initialData.ornament_id}`,
           formData
         );
       } else {
-        await axios.post(`${API_BASE_URL}/api/ornaments`, formData);
+        await api.post(`/api/ornaments`, formData);
       }
       onSuccess();
     } catch (err: any) {

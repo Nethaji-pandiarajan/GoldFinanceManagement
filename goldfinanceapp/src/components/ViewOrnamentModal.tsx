@@ -34,6 +34,7 @@ export default function ViewOrnamentModal({
           <DetailItem label="Ornament Name" value={ornament.ornament_name} />
           <DetailItem label="Ornament Type" value={ornament.ornament_type} />
           <DetailItem label="Ornament ID" value={ornament.ornament_id} />
+          <DetailItem label="Material Type" value={ornament.material_type} />
           <div className="md:col-span-2">
             <DetailItem label="Description" value={ornament.description} />
           </div>

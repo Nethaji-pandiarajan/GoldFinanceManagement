@@ -12,12 +12,22 @@ import NewLoanApplication from "../NewLoanApplication";
 import LoanDetails from '../LoanDetails';
 import PendingLoans from '../PendingLoans';
 import ClosedLoans from '../ClosedLoans';
+import TotalInvestments from "../TotalInvestments";
+import ProfilePage from "../ProfilePage";
+
+interface User {
+  id: number;
+  username: string;
+  role: string;
+  firstName: string;
+}
+
 type MainLayoutProps = {
   onLogout: () => void;
-  userRole: string | null;
+  user: User;
 };
 
-export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
+export default function MainLayout({ onLogout, user }: MainLayoutProps) {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [isSidebarExpanded, setSidebarExpanded] = useState(true);
   const renderContent = () => {
@@ -32,6 +42,8 @@ export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
         return <OrnamentDetails />;
       case "Gold Karat Details":
         return <GoldKaratDetails />;
+      case 'Total Investments':
+        return <TotalInvestments />;
       case "Gold Rate":
         return <GoldRateDetails />;
       case "Dashboard":
@@ -42,7 +54,8 @@ export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
         return <PendingLoans />;
       case 'Closed Loans':
         return <ClosedLoans />;
-
+      case 'My Profile':
+        return <ProfilePage />;
       default:
         return <Dashboard />;
     }
@@ -51,7 +64,7 @@ export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
     <div className="h-screen bg-[#1f2628] bg-cover bg-center ">
       <div className="relative h-full w-full bg-black/10">
         <div className="fixed top-0 left-0 right-0 z-20">
-          <TopNavbar onLogout={onLogout} setActiveItem={setActiveItem} />
+          <TopNavbar onLogout={onLogout} setActiveItem={setActiveItem} user={user} />
         </div>
 
         <div className="flex pt-14 h-full">
@@ -60,7 +73,7 @@ export default function MainLayout({ onLogout, userRole }: MainLayoutProps) {
             setActiveItem={setActiveItem}
             isExpanded={isSidebarExpanded}
             setIsExpanded={setSidebarExpanded}
-            userRole={userRole}
+            userRole={user.role}
           />
           <main className="flex-1 p-8 overflow-y-auto">
             <Breadcrumb currentPage={activeItem} />

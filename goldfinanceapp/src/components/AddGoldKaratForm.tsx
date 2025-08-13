@@ -1,32 +1,22 @@
-// src/components/AddGoldKaratForm.tsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-type AlertState = {
-  show: boolean;
-  type: "success" | "error" | "alert";
-  message: string;
-} | null;
-const karatOptions = ["24K", "22K", "20K", "18K", "14K", "10K", "Others"];
+type AlertState = { show: boolean; type: "success" | "error" | "alert"; message: string; } | null;
+
 type AddGoldKaratFormProps = {
   mode: "add" | "edit";
   initialData?: any;
   onClose: () => void;
   onSuccess: () => void;
   setAlert: (alert: AlertState) => void;
+  availableOptions: string[];
 };
 
-export default function AddGoldKaratForm({
-  mode,
-  initialData,
-  onClose,
-  onSuccess,
-  setAlert,
-}: AddGoldKaratFormProps) {
+export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess, setAlert  , availableOptions}: AddGoldKaratFormProps) {
   const [formData, setFormData] = useState({
     loan_percentage: "",
     description: "",
+    purity: "",
   });
   const [loading, setLoading] = useState(false);
   const [selectedKarat, setSelectedKarat] = useState("");
@@ -36,8 +26,9 @@ export default function AddGoldKaratForm({
       setFormData({
         loan_percentage: initialData.loan_percentage || "",
         description: initialData.description || "",
+        purity: initialData.purity || "",
       });
-      const isPredefined = karatOptions.includes(initialData.karat_name);
+      const isPredefined = availableOptions.includes(initialData.karat_name);
       if (isPredefined) {
         setSelectedKarat(initialData.karat_name);
       } else {
@@ -45,56 +36,66 @@ export default function AddGoldKaratForm({
         setCustomKaratName(initialData.karat_name || "");
       }
     }
-  }, [mode, initialData]);
+  }, [mode, initialData , availableOptions  ]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  useEffect(() => {
+    if (mode === 'add') {
+      if (selectedKarat && selectedKarat !== "Others") {
+        const karatValue = parseInt(selectedKarat, 10);
+        
+        if (!isNaN(karatValue)) {
+          const calculatedPurity = (karatValue / 24) * 100;
+          setFormData(prevData => ({
+            ...prevData,
+            purity: calculatedPurity.toFixed(2),
+          }));
+        }
+      } else if (selectedKarat === "Others") {
+        setFormData(prevData => ({ ...prevData, purity: "" }));
+      }
+    }
+  }, [selectedKarat, mode]);
+
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const finalKaratName =
-      selectedKarat === "Others" ? customKaratName : selectedKarat;
+
+    const finalKaratName = selectedKarat === "Others" ? customKaratName : selectedKarat;
     if (!finalKaratName) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Karat Name is required.",
-      });
+      setAlert({ show: true, type: "error", message: "Karat Name is required." });
       setLoading(false);
       return;
     }
+
     const submissionData = {
       ...formData,
-      karat_name: finalKaratName,
+      ...(mode === 'add' && { karat_name: finalKaratName }),
     };
+    
     try {
       if (mode === "edit") {
-        await axios.put(
-          `${API_BASE_URL}/api/karats/${initialData.karat_id}`,
-          submissionData
-        );
+        await api.put(`/api/karats/${initialData.karat_id}`, submissionData);
       } else {
-        await axios.post(`${API_BASE_URL}/api/karats`, submissionData);
+        await api.post(`/api/karats`, submissionData);
       }
       onSuccess();
     } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || `Failed to ${mode} karat detail.`;
+      const errorMessage = err.response?.data?.message || `Failed to ${mode} karat detail.`;
       setAlert({ show: true, type: "error", message: errorMessage });
       onClose();
     } finally {
       setLoading(false);
     }
   };
-
-  const inputStyle =
-    "w-full p-2 rounded bg-[#1f2628] h-11 text-white border border-[#1f2628] focus:outline-none focus:border-[#c69909]";
+  
+  const inputStyle = "w-full p-2 rounded bg-[#1f2628] h-11 text-white border border-[#1f2628] focus:outline-none focus:border-[#c69909]";
+  const disabledInputStyle = "bg-black/20 cursor-not-allowed text-gray-400";
   const labelStyle = "block text-sm font-bold text-gray-300 mb-1";
-
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50">
       <div className="relative bg-[#111315] rounded-lg shadow-xl p-8 w-full max-w-lg">
@@ -127,11 +128,12 @@ export default function AddGoldKaratForm({
               <select 
                 value={selectedKarat} 
                 onChange={(e) => setSelectedKarat(e.target.value)} 
-                className={inputStyle} 
+                className={`${inputStyle} ${mode === 'edit' ? disabledInputStyle : ''}`} 
                 required
+                disabled={mode === 'edit'}
               >
                 <option value="">Select a Karat</option>
-                {karatOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {availableOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
             {selectedKarat === 'Others' && (
@@ -141,34 +143,36 @@ export default function AddGoldKaratForm({
                   type="text" 
                   value={customKaratName} 
                   onChange={(e) => setCustomKaratName(e.target.value)} 
-                  className={inputStyle} 
+                  className={`${inputStyle} ${mode === 'edit' ? disabledInputStyle : ''}`} 
                   required 
                   placeholder="e.g., 9K, Custom Alloy" 
+                  disabled={mode === 'edit'}
                 />
               </div>
             )}
             <div>
               <label className={labelStyle}>Loan Percentage (%)*</label>
+              <input type="number" name="loan_percentage" value={formData.loan_percentage} onChange={handleChange} className={inputStyle} required placeholder="e.g., 75.50" step="0.01" />
+            </div>
+
+            <div>
+              <label className={labelStyle}>Purity (%)*</label>
               <input
                 type="number"
-                name="loan_percentage"
-                value={formData.loan_percentage}
+                name="purity"
+                value={formData.purity}
                 onChange={handleChange}
-                className={inputStyle}
+                className={`${inputStyle} ${selectedKarat !== 'Others' && mode === 'add' ? disabledInputStyle : ''}`} // Make it read-only if not 'Others' in add mode
                 required
-                placeholder="e.g., 75.50"
+                placeholder={selectedKarat !== 'Others' && mode === 'add' ? 'Auto-calculated' : 'e.g., 91.60'}
                 step="0.01"
+                readOnly={selectedKarat !== 'Others' && mode === 'add'} // Enforce read-only
               />
             </div>
+
             <div>
               <label className={labelStyle}>Description</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className={inputStyle}
-                rows={3}
-              ></textarea>
+              <textarea name="description" value={formData.description} onChange={handleChange} className={inputStyle} rows={3}></textarea>
             </div>
           </div>
           <div className="flex justify-end space-x-4 mt-8">

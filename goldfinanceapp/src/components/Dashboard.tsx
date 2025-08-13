@@ -1,192 +1,121 @@
-// src/components/Dashboard.tsx
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
-import {
-  UserGroupIcon,
-  DocumentTextIcon,
-  BanknotesIcon,
-  ReceiptPercentIcon,
-  ScaleIcon,
-  HandThumbUpIcon,
-} from "@heroicons/react/24/outline";
-type StatCardProps = {
-  title: string;
-  value: string;
-  Icon: React.ForwardRefExoticComponent<
-    React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & {
-      title?: string;
-      titleId?: string;
-    } & React.RefAttributes<SVGSVGElement>
-  >;
-  iconBgColor: string;
-  iconColor: string;
-};
-const statsData: StatCardProps[] = [
-  {
-    title: "Total Customers",
-    value: "1,245 +",
-    Icon: UserGroupIcon,
-    iconBgColor: "bg-blue-500/20",
-    iconColor: "text-blue-300",
-  },
-  {
-    title: "Total Loans",
-    value: "832 +",
-    Icon: DocumentTextIcon,
-    iconBgColor: "bg-green-500/20",
-    iconColor: "text-green-300",
-  },
-  {
-    title: "Total Loan Amount",
-    value: "₹50 L",
-    Icon: BanknotesIcon,
-    iconBgColor: "bg-indigo-500/20",
-    iconColor: "text-indigo-300",
-  },
-  {
-    title: "Total Interest",
-    value: "₹38 L",
-    Icon: ReceiptPercentIcon,
-    iconBgColor: "bg-amber-500/20",
-    iconColor: "text-amber-300",
-  },
-  {
-    title: "In Hand (Amount)",
-    value: "₹45 L",
-    Icon: HandThumbUpIcon,
-    iconBgColor: "bg-pink-500/20",
-    iconColor: "text-pink-300",
-  },
-  {
-    title: "Gold Rate (24K)",
-    value: "₹7,150/g",
-    Icon: ScaleIcon,
-    iconBgColor: "bg-yellow-500/20",
-    iconColor: "text-yellow-300",
-  },
-];
-const loanData = [
-  { name: "Jan", Approved: 4000, Pending: 2400 },
-  { name: "Feb", Approved: 3000, Pending: 1398 },
-  { name: "Mar", Approved: 2000, Pending: 9800 },
-  { name: "Apr", Approved: 2780, Pending: 3908 },
-  { name: "May", Approved: 1890, Pending: 4800 },
-  { name: "Jun", Approved: 2390, Pending: 3800 },
-];
+import { useState, useEffect } from 'react';
+import api from '../api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
+import { UserGroupIcon, DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ScaleIcon } from "@heroicons/react/24/outline";
 
-const customerData = [
-  { name: "Week 1", NewCustomers: 12 },
-  { name: "Week 2", NewCustomers: 19 },
-  { name: "Week 3", NewCustomers: 8 },
-  { name: "Week 4", NewCustomers: 15 },
-];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const StatCard = ({
-  title,
-  value,
-  Icon,
-  iconBgColor,
-  iconColor,
-}: StatCardProps) => (
-  <div className="bg-black backdrop-blur-md p-4 rounded-lg shadow-2xs border border-black flex items-center space-x-4">
+const StatCard = ({ title, value, Icon, iconBgColor, iconColor, isLoading }: any) => (
+  <div className="bg-[#111315] p-4 rounded-lg shadow-lg flex items-center space-x-4">
     <div className={`flex-shrink-0 p-3 rounded-full ${iconBgColor}`}>
       <Icon className={`h-6 w-6 ${iconColor}`} />
     </div>
     <div>
       <p className="text-sm text-[#c69909]">{title}</p>
-      <p className="text-2xl font-bold text-gray-400">{value}</p>
+      {isLoading ? (
+        <div className="h-8 w-24 bg-gray-700/50 animate-pulse rounded-md mt-1"></div>
+      ) : (
+        <p className="text-2xl font-bold text-gray-300">{value}</p>
+      )}
     </div>
   </div>
 );
-const ChartCard = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) => (
-  <div className="bg-black backdrop-blur-md p-6 rounded-lg shadow-xl border border-black">
+
+const ChartCard = ({ title, children, isLoading }: any) => (
+  <div className="bg-[#111315] p-6 rounded-lg shadow-xl">
     <h3 className="text-xl font-semibold mb-4 text-[#c69909]">{title}</h3>
-    <div style={{ width: "100%", height: 300 }}>{children}</div>
+    <div style={{ width: '100%', height: 300 }}>
+      {isLoading ? (
+        <div className="w-full h-full bg-gray-700/50 animate-pulse rounded-md"></div>
+      ) : (
+        children
+      )}
+    </div>
   </div>
 );
+const formatCurrency = (value: string | number) => {
+    const num = parseFloat(String(value));
+    if (isNaN(num)) return '₹ 0';
+
+    if (num >= 10000000) { 
+        return `₹ ${(num / 10000000).toFixed(2)} Cr`;
+    }
+    if (num >= 100000) {
+        return `₹ ${(num / 100000).toFixed(2)} L`;
+    }
+    return `₹ ${num.toLocaleString('en-IN')}`;
+};
 
 export default function Dashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await api.get(`${API_BASE_URL}/api/dashboard/stats`, {
+          headers: { 'x-auth-token': token }
+        });
+        setStats(response.data);
+      } catch (err) {
+        setError("Failed to load dashboard data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
+
+  const statsData = [
+    { title: "Total Customers", value: stats?.totalCustomers, Icon: UserGroupIcon, iconBgColor: "bg-blue-500/20", iconColor: "text-blue-300" },
+    { title: "Total Loans", value: stats?.totalLoans, Icon: DocumentTextIcon, iconBgColor: "bg-green-500/20", iconColor: "text-green-300" },
+    { title: "Total Loan Amount", value: formatCurrency(stats?.totalLoanAmount), Icon: BanknotesIcon, iconBgColor: "bg-indigo-500/20", iconColor: "text-indigo-300" },
+    { title: "Total Interest Paid", value: formatCurrency(stats?.totalInterest), Icon: ReceiptPercentIcon, iconBgColor: "bg-amber-500/20", iconColor: "text-amber-300" },
+    { title: "Total Investment", value: formatCurrency(stats?.totalInvestment), Icon: BanknotesIcon, iconBgColor: "bg-pink-500/20", iconColor: "text-pink-300" },
+    { title: "Gold Rate (22K)", value: `₹ ${parseFloat(stats?.goldRate22k || 0).toLocaleString('en-IN')}/g`, Icon: ScaleIcon, iconBgColor: "bg-yellow-500/20", iconColor: "text-yellow-300" },
+  ];
+
+  if (error) {
+    return <div className="text-center p-8 text-red-400">{error}</div>;
+  }
+  
   return (
     <div>
       <h1 className="text-3xl font-bold text-[#c69909] mb-6">Dashboard</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {statsData.map((stat) => (
-          <StatCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            Icon={stat.Icon}
-            iconBgColor={stat.iconBgColor}
-            iconColor={stat.iconColor}
-          />
+          <StatCard key={stat.title} {...stat} isLoading={loading} />
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Monthly Loan Applications">
+        <ChartCard title="Monthly Loan Status" isLoading={loading}>
           <ResponsiveContainer>
-            <BarChart data={loanData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+            <BarChart data={stats?.monthlyLoanData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#4A5568" />
+              <XAxis dataKey="month" stroke="#A0AEC0" />
+              <YAxis stroke="#A0AEC0" />
+              <Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} />
               <Legend />
-              <Bar dataKey="Pending" fill="#8884d8" />
-              <Bar dataKey="Approved" fill="#82ca9d" />
+              <Bar dataKey="Pending" fill="#ECC94B" />
+              <Bar dataKey="Completed" fill="#48BB78" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="New Customers / Week">
+        <ChartCard title="New Customers (Last 4 Weeks)" isLoading={loading}>
           <ResponsiveContainer>
-            <LineChart data={customerData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+            <LineChart data={stats?.weeklyCustomerData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#4A5568" />
+              <XAxis dataKey="week" stroke="#A0AEC0" />
+              <YAxis stroke="#A0AEC0" />
+              <Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} />
               <Legend />
-              <Line
-                type="monotone"
-                dataKey="NewCustomers"
-                stroke="#ff7300"
-                strokeWidth={2}
-              />
+              <Line type="monotone" dataKey="NewCustomers" stroke="#3182CE" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
-
-        {/*<ChartCard title="Loan Distribution by Karat">
-          <ResponsiveContainer>
-            <PieChart>
-              <Pie data={karatData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
-                {karatData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Processing Amount">
-           <div className="h-full flex items-center justify-center">
-             <p className="text-gray-400">Processing Amount Chart</p>
-           </div>
-        </ChartCard>*/}
       </div>
     </div>
   );

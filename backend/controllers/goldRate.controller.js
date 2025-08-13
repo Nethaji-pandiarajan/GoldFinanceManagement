@@ -1,23 +1,29 @@
 const db = require("../db");
 const logger = require("../config/logger");
 exports.getAllGoldRates = async (req, res) => {
-  logger.info(`[GOLD RATE] Request received to GET all gold rates.`);
-  try {
-    const query = `
-      SELECT r.rate_id, r.karat_id, r.today_rate, k.karat_name
-      FROM datamanagement.gold_rate r
-      JOIN datamanagement.gold_karat_details k ON r.karat_id = k.karat_id
-      ORDER BY k.karat_name;
-    `;
-    const result = await db.query(query);
-    logger.info(`[GOLD RATE] Successfully retrieved ${result.rows.length} gold rates.`);
-    res.json(result.rows);
-  } catch (error) {
-    logger.error(`[GOLD RATE] Error fetching all gold rates: ${error.message}`, { stack: error.stack });
-    res.status(500).json({ message: "Server error." });
-  }
+    logger.info(`[GOLD RATE] Request received to GET all karats with their rates.`);
+    try {
+        const query = `
+          SELECT 
+              k.karat_id,
+              k.karat_name,
+              r.rate_id,
+              r.today_rate
+          FROM 
+              datamanagement.gold_karat_details k
+          LEFT JOIN 
+              datamanagement.gold_rate r ON k.karat_id = r.karat_id
+          ORDER BY 
+              k.karat_name;
+        `;
+        const result = await db.query(query);
+        logger.info(`[GOLD RATE] Successfully retrieved ${result.rows.length} karats for rate management.`);
+        res.json(result.rows);
+    } catch (error) {
+        logger.error(`[GOLD RATE] Error fetching all karats for rates: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error." });
+    }
 };
-
 exports.createGoldRate = async (req, res) => {
   const { karat_id, today_rate } = req.body;
   logger.info(`[GOLD RATE] Attempting to CREATE a new gold rate for karat_id '${karat_id}' with rate '${today_rate}'.`);

@@ -1,6 +1,6 @@
 // src/components/OrnamentDetails.tsx
 import _React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
 import AddOrnamentForm from "./AddOrnamentForm";
@@ -28,7 +28,7 @@ export default function OrnamentDetails() {
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/ornaments/${itemToDelete}`);
+      await api.delete(`/api/ornaments/${itemToDelete}`);
       tableRef.current?.dt().ajax.reload();
       setAlert({
         show: true,
@@ -77,7 +77,13 @@ export default function OrnamentDetails() {
       return () => tableElement.removeEventListener("click", listener);
     }
   }, []);
-
+  const ajaxConfig = {
+    url: `${API_BASE_URL}/api/ornaments`,
+    dataSrc: "",
+    headers: {
+      'x-auth-token': localStorage.getItem('authToken') || ''
+    }
+  };
   const tableColumns = [
     {
       title: "S.No",
@@ -181,7 +187,7 @@ export default function OrnamentDetails() {
           id="ornamentTable"
           ref={tableRef}
           className="display w-full"
-          ajax={{ url: `${API_BASE_URL}/api/ornaments`, dataSrc: "" }}
+          ajax={ajaxConfig}
           columns={tableColumns}
         >
           <thead>

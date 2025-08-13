@@ -11,6 +11,7 @@ import {
   CogIcon,
   Squares2X2Icon,
   DocumentTextIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/solid";
 import clsx from "clsx";
 
@@ -19,6 +20,7 @@ const originalNavigation = [
   { name: "New Loan Application", icon: DocumentPlusIcon, type: "primary" },
   { name: 'Loan Details', icon: DocumentTextIcon, type: 'default' },
   { name: "Customer Details", icon: UserGroupIcon, type: "secondary" },
+  { name: "Total Investments", icon: BanknotesIcon, type: "default",roles: ['super_admin'] },
   { name: "Ornaments Details", icon: BuildingStorefrontIcon, type: "default" },
   { name: "Gold Karat Details", icon: ScaleIcon, type: "default" },
   { name: "Gold Rate", icon: CurrencyDollarIcon, type: "default" },
@@ -38,9 +40,9 @@ export default function Sidebar({
   userRole,
 }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const navigation = originalNavigation.filter((item) => {
-    if (item.name === "Processing Amount") {
-      return userRole === "super_admin";
+    const navigation = originalNavigation.filter(item => {
+    if (item.roles) {
+      return item.roles.includes(userRole || '');
     }
     return true;
   });

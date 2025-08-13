@@ -8,6 +8,13 @@ DataTable.use(DT);
 
 export default function ClosedLoans() {
   const tableRef = useRef<any>();
+  const ajaxConfig = {
+    url: `${API_BASE_URL}/api/loans/closed`,
+    dataSrc: '',
+    headers: {
+      'x-auth-token': localStorage.getItem('authToken') || ''
+    }
+  };
   const tableColumns = [
     { title: "Loan ID", data: "loan_id" },
     { title: "Customer Name", data: "customer_name" },
@@ -45,7 +52,7 @@ export default function ClosedLoans() {
         id="closedLoanTable"
         ref={tableRef}
         className="display w-full"
-        ajax={{ url: `${API_BASE_URL}/api/loans/closed`, dataSrc: '' }}
+        ajax={ajaxConfig}
         columns={tableColumns}
       >
          <thead>

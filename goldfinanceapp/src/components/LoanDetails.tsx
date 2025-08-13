@@ -1,6 +1,6 @@
 // src/components/LoanDetails.tsx
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
 import { PlusIcon } from "@heroicons/react/24/solid";
@@ -32,7 +32,7 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/loans/${itemToDelete}`);
+      await api.delete(`/api/loans/${itemToDelete}`);
       tableRef.current?.dt().ajax.reload();
       setAlert({
         show: true,
@@ -60,9 +60,7 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
       setPaymentData(loan);
     } else if (action === "view") {
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/loans/${loan.loan_id}`
-        );
+        const response = await api.get(`/api/loans/${loan.loan_id}`);
         setViewData(response.data);
       } catch (error) {
         setAlert({
@@ -90,7 +88,13 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
       return () => tableElement.removeEventListener("click", listener);
     }
   }, []);
-
+  const ajaxConfig = {
+    url: `${API_BASE_URL}/api/loans`,
+    dataSrc: "",
+    headers: {
+      'x-auth-token': localStorage.getItem('authToken') || ''
+    }
+  };
   const tableColumns = [
     { title: "Loan ID", data: "loan_id" },
     { title: "Customer Name", data: "customer_name" },
@@ -205,7 +209,7 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
           id="loanTable"
           ref={tableRef}
           className="display w-full"
-          ajax={{ url: `${API_BASE_URL}/api/loans`, dataSrc: "" }}
+          ajax={ajaxConfig}
           columns={tableColumns}
         >
           <thead>

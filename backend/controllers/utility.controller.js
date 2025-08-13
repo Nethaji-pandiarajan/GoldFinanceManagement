@@ -19,6 +19,7 @@ exports.checkEmail = async (req, res) => {
             params = [email];
         }
         const result = await db.query(query, params);
+        const exists = result.rows.length > 0;
         logger.info(`[UTILITY] Email check for '${email}' completed. Exists: ${exists}`);
         res.json({ exists: result.rows.length > 0 });
     } catch (error) {
@@ -46,6 +47,7 @@ exports.checkPhone = async (req, res) => {
             params = [phone];
         }
         const result = await db.query(query, params);
+        const exists = result.rows.length > 0;
         logger.info(`[UTILITY] Phone check for '${phone}' completed. Exists: ${exists}`);
         res.json({ exists: result.rows.length > 0 });
     } catch (error) {

@@ -1,13 +1,13 @@
 // src/components/GoldKaratDetails.tsx
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
 import AddGoldKaratForm from "./AddGoldKaratForm";
 import AlertNotification from "./AlertNotification";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { PlusIcon } from "@heroicons/react/24/solid";
-
+const allKaratOptions = ["24K", "22K", "20K", "18K", "14K", "10K", "Others"];
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 DataTable.use(DT);
 
@@ -23,12 +23,13 @@ export default function GoldKaratDetails() {
   const [viewData, setViewData] = useState<any | null>(null);
   const [editData, setEditData] = useState<any | null>(null);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
+  const [tableData, setTableData] = useState<any[]>([]);
   const tableRef = useRef<any>();
   console.log("GoldKaratDetails component rendered",viewData);
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/karats/${itemToDelete}`);
+      await api.delete(`/api/karats/${itemToDelete}`);
       tableRef.current?.dt().ajax.reload();
       setAlert({
         show: true,
@@ -76,7 +77,16 @@ export default function GoldKaratDetails() {
       return () => tableElement.removeEventListener("click", listener);
     }
   }, []);
-
+  const ajaxConfig = {
+    url: `${API_BASE_URL}/api/karats`,
+    dataSrc: (json: any) => {
+      setTableData(json);
+      return json;
+    },
+    headers: {
+      'x-auth-token': localStorage.getItem('authToken') || ''
+    }
+  };
   const tableColumns = [
     {
       title: "S.No",
@@ -88,6 +98,11 @@ export default function GoldKaratDetails() {
       title: "Loan Percentage",
       data: "loan_percentage",
       render: (data: string) => `${parseFloat(data).toFixed(2)}%`,
+    },
+    {
+      title: "Purity",
+      data: "purity",
+      render: (data: string) => data ? `${parseFloat(data).toFixed(2)}%` : 'N/A',
     },
     { title: "Description", data: "description" },
     {
@@ -123,7 +138,10 @@ export default function GoldKaratDetails() {
         : "Karat detail updated successfully!";
     setAlert({ show: true, type: "success", message: message });
   };
-
+  const existingKaratNames = tableData.map(karat => karat.karat_name);
+  const availableKaratOptions = allKaratOptions.filter(
+    option => !existingKaratNames.includes(option) || option === 'Others'
+  );
   return (
     <>
       {alert?.show && (
@@ -139,6 +157,7 @@ export default function GoldKaratDetails() {
           onClose={() => setAddModalOpen(false)}
           onSuccess={() => handleSuccess("add")}
           setAlert={setAlert}
+          availableOptions={availableKaratOptions} 
         />
       )}
       {editData && (
@@ -148,9 +167,9 @@ export default function GoldKaratDetails() {
           onClose={() => setEditData(null)}
           onSuccess={() => handleSuccess("edit")}
           setAlert={setAlert}
+          availableOptions={allKaratOptions} 
         />
       )}
-      {/* {viewData && <ViewKaratModal karat={viewData} onClose={() => setViewData(null)} />} */}
       {itemToDelete && (
         <ConfirmationDialog
           type="delete"
@@ -176,7 +195,7 @@ export default function GoldKaratDetails() {
           id="karatTable"
           ref={tableRef}
           className="display w-full"
-          ajax={{ url: `${API_BASE_URL}/api/karats`, dataSrc: "" }}
+          ajax={ajaxConfig}
           columns={tableColumns}
         >
           <thead>
@@ -184,6 +203,7 @@ export default function GoldKaratDetails() {
               <th>S.No.</th>
               <th>Karat Name</th>
               <th>Loan Percentage</th>
+              <th>Purity</th>
               <th>Description</th>
               <th>Actions</th>
             </tr>
