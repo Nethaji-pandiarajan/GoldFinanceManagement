@@ -1,6 +1,6 @@
 // src/components/CustomerDetails.tsx
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
 import AddCustomerForm from "./AddCustomerForm";
@@ -25,7 +25,7 @@ export default function CustomerDetails() {
   const handleConfirmDelete = async () => {
     if (!customerToDelete) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/customers/${customerToDelete}`);
+      await api.delete(`/api/customers/${customerToDelete}`);
       tableRef.current?.dt().ajax.reload();
       setAlert({
         show: true,
@@ -53,9 +53,7 @@ export default function CustomerDetails() {
       setCustomerToDelete(uuid);
     } else {
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/customers/${uuid}`
-        );
+        const response = await api.get(`/api/customers/${uuid}`);
         if (action === "view") {
           setViewData(response.data);
         } else if (action === "edit") {
@@ -93,6 +91,13 @@ export default function CustomerDetails() {
       return () => tableElement.removeEventListener("click", listener);
     }
   }, []);
+  const ajaxConfig = {
+    url: `${API_BASE_URL}/api/customers`,
+    dataSrc: "",
+    headers: {
+      'x-auth-token': localStorage.getItem('authToken') || ''
+    }
+  };
   const tableColumns = [
     {
       title: "S.No",
@@ -228,10 +233,7 @@ export default function CustomerDetails() {
           id="customerTable"
           ref={tableRef}
           className="display w-full"
-          ajax={{
-            url: `${API_BASE_URL}/api/customers`,
-            dataSrc: "",
-          }}
+          ajax={ajaxConfig}
           columns={tableColumns}
         >
           <thead>

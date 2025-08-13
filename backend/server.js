@@ -18,6 +18,8 @@ const goldRateRoutes = require("./routes/goldRate.routes");
 const loanRoutes = require("./routes/loan.routes");
 const userRoutes = require("./routes/user.routes");
 const utilityRoutes = require("./routes/utility.routes");
+const dashboardRoutes = require("./routes/dashboard.routes");
+const processingRoutes = require("./routes/processing.routes");
 app.use("/api/auth", authRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/ornaments", ornamentRoutes);
@@ -26,7 +28,8 @@ app.use("/api/gold-rates", goldRateRoutes);
 app.use("/api/loans", loanRoutes);
 app.use("/api/users", userRoutes); 
 app.use("/api", utilityRoutes); 
-
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/processing", processingRoutes);
 app.listen(PORT, () => {
   console.log(`✅ Backend server is running on http://localhost:${PORT}`);
 });

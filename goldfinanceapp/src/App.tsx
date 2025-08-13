@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -10,45 +9,56 @@ import { jwtDecode } from "jwt-decode";
 import MainLayout from "./components/layouts/MainLayout";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import AlertNotification from "./components/AlertNotification";
+import { setGlobalAlert } from "./api";
+interface User {
+  id: number;
+  username: string;
+  role: string;
+  firstName: string;
+}
+
 type DecodedToken = {
-  user: {
-    id: number;
-    username: string;
-    role: string;
-  };
+  user: User;
   iat: number;
   exp: number;
 };
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
+function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [alert, setAlert] = useState<any>(null);
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (token) {
       try {
         const decoded = jwtDecode<DecodedToken>(token);
-        setUserRole(decoded.user.role);
-        setIsLoggedIn(true);
+        const currentTime = Date.now() / 1000;
+        if (decoded.exp < currentTime) {
+            localStorage.removeItem("authToken");
+            setUser(null);
+        } else {
+            setUser(decoded.user);
+        }
       } catch (error) {
         localStorage.removeItem("authToken");
+        setUser(null);
       }
     }
     setIsLoading(false);
   }, []);
-
+  useEffect(() => {
+    setGlobalAlert(setAlert);
+  }, []);
   const handleLoginSuccess = (token: string) => {
     localStorage.setItem("authToken", token);
     const decoded = jwtDecode<DecodedToken>(token);
-    setUserRole(decoded.user.role);
-    setIsLoggedIn(true);
+    setUser(decoded.user);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    setIsLoggedIn(false);
-    setUserRole(null);
+    setUser(null);
   };
 
   if (isLoading) {
@@ -58,12 +68,13 @@ function App() {
   return (
     <Router>
       <Routes>
-        {isLoggedIn ? (
+        {user ? (
           <>
+           {alert?.show && <AlertNotification {...alert} onClose={() => setAlert(null)} />}
             <Route
               path="/mainlayout"
               element={
-                <MainLayout onLogout={handleLogout} userRole={userRole} />
+                <MainLayout onLogout={handleLogout} user={user} />
               }
             />
             <Route path="*" element={<Navigate to="/mainlayout" />} />

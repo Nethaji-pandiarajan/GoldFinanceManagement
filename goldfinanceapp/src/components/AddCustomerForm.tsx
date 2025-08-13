@@ -1,8 +1,6 @@
 // src/components/AddCustomerForm.tsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from "../api";
 type AlertState = {
   show: boolean;
   type: "success" | "error" | "alert";
@@ -211,20 +209,14 @@ export default function AddCustomerForm({
       const customerUuid =
         mode === "edit" ? initialData.customer_uuid : undefined;
       const emailPayload = { email: formData.email, customerUuid };
-      const emailResponse = await axios.post(
-        `${API_BASE_URL}/api/check-email`,
-        emailPayload
-      );
+      const emailResponse = await api.post("/api/check-email", emailPayload);
       if (emailResponse.data.exists) {
         setError("This email address is already taken. Please use another.");
         setLoading(false);
         return false;
       }
       const phonePayload = { phone: formData.phone, customerUuid };
-      const phoneResponse = await axios.post(
-        `${API_BASE_URL}/api/check-phone`,
-        phonePayload
-      );
+      const phoneResponse = await api.post("/api/check-phone", phonePayload);
       if (phoneResponse.data.exists) {
         setError("This phone number is already taken. Please use another.");
         setLoading(false);
@@ -263,17 +255,12 @@ export default function AddCustomerForm({
 
     try {
       if (mode === "edit") {
-        await axios.put(
-          `${API_BASE_URL}/api/customers/${initialData.customer_uuid}`,
-          submissionData,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          }
+        await api.put(
+          `/api/customers/${initialData.customer_uuid}`,
+          submissionData
         );
       } else {
-        await axios.post(`${API_BASE_URL}/api/customers`, submissionData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.post(`/api/customers`, submissionData);
       }
       onSuccess();
     } catch (err: any) {

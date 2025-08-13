@@ -1,34 +1,37 @@
-// src/components/GoldRateDetails.tsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api";
 import AlertNotification from "./AlertNotification";
-import { PlusIcon } from "@heroicons/react/24/solid";
+import { PlusIcon, CheckIcon } from "@heroicons/react/24/solid";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-type AlertState = {
-  show: boolean;
-  type: "success" | "error" | "alert";
-  message: string;
-} | null;
+
+type AlertState = { show: boolean; type: "success" | "error" | "alert"; message: string; } | null;
+
+interface RateRow {
+  karat_id: number;
+  karat_name: string;
+  rate_id: number | null;
+  today_rate: string;
+}
 
 export default function GoldRateDetails() {
-  const [rates, setRates] = useState<any[]>([]);
-  const [karats, setKarats] = useState<any[]>([]);
+  const [rates, setRates] = useState<RateRow[]>([]);
   const [editingRowId, setEditingRowId] = useState<number | null>(null);
-  const [newRateData, setNewRateData] = useState({
-    karat_id: "",
-    today_rate: "",
-  });
   const [alert, setAlert] = useState<AlertState>(null);
+  const [loading, setLoading] = useState(false);
 
   const fetchRates = async () => {
+    setLoading(true);
     try {
-      const ratesRes = await axios.get(`${API_BASE_URL}/api/gold-rates`);
-      const karatsRes = await axios.get(`${API_BASE_URL}/api/karats/list`);
-      setRates(ratesRes.data);
-      setKarats(karatsRes.data);
+      const response = await api.get(`/api/gold-rates`);
+      const formattedData = response.data.map((row: any) => ({
+        ...row,
+        today_rate: row.today_rate ? String(row.today_rate) : '',
+      }));
+      setRates(formattedData);
     } catch (error) {
       setAlert({ show: true, type: "error", message: "Failed to fetch data." });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,188 +39,115 @@ export default function GoldRateDetails() {
     fetchRates();
   }, []);
 
-  const handleEditClick = (rate: any) => {
-    setEditingRowId(rate.rate_id);
+  const handleEditClick = (karatId: number) => {
+    setEditingRowId(karatId);
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    rateId: number
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, karatId: number) => {
     const updatedRates = rates.map((rate) =>
-      rate.rate_id === rateId ? { ...rate, today_rate: e.target.value } : rate
+      rate.karat_id === karatId ? { ...rate, today_rate: e.target.value } : rate
     );
     setRates(updatedRates);
   };
 
-  const handleUpdate = async (rateId: number) => {
-    const rateToUpdate = rates.find((r) => r.rate_id === rateId);
-    if (!rateToUpdate) return;
+  const handleSave = async (karatId: number) => {
+    const rateToSave = rates.find((r) => r.karat_id === karatId);
+    if (!rateToSave || !rateToSave.today_rate) {
+      setAlert({ show: true, type: 'alert', message: 'Please enter a valid rate.' });
+      return;
+    }
 
+    setLoading(true);
     try {
-      await axios.put(`${API_BASE_URL}/api/gold-rates/${rateId}`, {
-        today_rate: rateToUpdate.today_rate,
-      });
-      setAlert({
-        show: true,
-        type: "success",
-        message: "Rate updated successfully!",
-      });
+      if (rateToSave.rate_id) {
+        await api.put(`/api/gold-rates/${rateToSave.rate_id}`, {
+          today_rate: rateToSave.today_rate,
+        });
+        setAlert({ show: true, type: "success", message: "Rate updated successfully!" });
+      } else {
+        await api.post(`/api/gold-rates`, {
+          karat_id: rateToSave.karat_id,
+          today_rate: rateToSave.today_rate,
+        });
+        setAlert({ show: true, type: "success", message: "Rate added successfully!" });
+      }
       setEditingRowId(null);
       fetchRates();
     } catch (error) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Failed to update rate.",
-      });
-    }
-  };
-
-  const handleAddNewChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setNewRateData({ ...newRateData, [e.target.name]: e.target.value });
-  };
-
-  const handleAddNewSubmit = async () => {
-    if (!newRateData.karat_id || !newRateData.today_rate) {
-      setAlert({
-        show: true,
-        type: "alert",
-        message: "Please select a karat and enter a rate.",
-      });
-      return;
-    }
-    try {
-      await axios.post(`${API_BASE_URL}/api/gold-rates`, newRateData);
-      setAlert({
-        show: true,
-        type: "success",
-        message: "New rate added successfully!",
-      });
-      setNewRateData({ karat_id: "", today_rate: "" });
-      fetchRates();
-    } catch (error) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Failed to add new rate.",
-      });
+      setAlert({ show: true, type: "error", message: "Failed to save rate." });
+    } finally {
+      setLoading(false);
     }
   };
 
   const cellStyle = "p-3";
-  const inputStyle =
-    "w-full h-11 p-2 rounded bg-[#1f2628] text-white border border-gray-600 focus:outline-none focus:border-[#c69909]";
-  const buttonStyle =
-    "flex items-center justify-center w-full bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors";
+  const inputStyle = "w-full h-11 p-2 rounded bg-[#1f2628] text-white border border-gray-600 focus:outline-none focus:border-[#c69909]";
+  const buttonStyle = "flex items-center justify-center w-full bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-50";
 
   return (
     <>
-      {alert?.show && (
-        <AlertNotification
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-        />
-      )}
+      {alert?.show && ( <AlertNotification {...alert} onClose={() => setAlert(null)} /> )}
       <div className="bg-[#111315] p-6 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-[#c69909] mb-4">
-          Manage Gold Rates
-        </h1>
-
+        <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-[#c69909]">Manage Gold Rates</h1>
+            <button onClick={fetchRates} disabled={loading} className="px-4 py-2 text-sm bg-gray-700/50 rounded-lg hover:bg-gray-600 disabled:opacity-50">
+                {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+        </div>
         <div className="overflow-x-auto">
-          {/* --- UPDATED: Added table-fixed for consistent column widths --- */}
           <table className="w-full text-left table-fixed">
             <thead className="border-b-2 border-[#c69909]">
               <tr>
-                {/* --- UPDATED: Added explicit column widths --- */}
                 <th className={`${cellStyle} w-1/3 text-white`}>Karat Name</th>
-                <th className={`${cellStyle} w-1/3 text-white`}>
-                  Today's Rate (per gram)
-                </th>
-                <th className={`${cellStyle} w-1/3 text-white text-center`}>
-                  Update
-                </th>
+                <th className={`${cellStyle} w-1/3 text-white`}>Today's Rate (per gram)</th>
+                <th className={`${cellStyle} w-1/3 text-white text-center`}>Action</th>
               </tr>
             </thead>
             <tbody>
-              {rates.map((rate) => (
-                <tr key={rate.rate_id} className="border-b border-gray-800">
-                  {/* --- UPDATED: Changed text color to gray-300 --- */}
-                  <td className={`${cellStyle} text-gray-300 font-semibold`}>
-                    {rate.karat_name}
-                  </td>
-                  <td className={cellStyle}>
-                    {editingRowId === rate.rate_id ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={rate.today_rate}
-                        onChange={(e) => handleInputChange(e, rate.rate_id)}
-                        className={inputStyle}
-                        autoFocus
-                      />
-                    ) : (
-                      <span
-                        onClick={() => handleEditClick(rate)}
-                        className="cursor-pointer p-2 text-gray-300 hover:bg-[#1f2628] rounded-md"
-                      >
-                        ₹{parseFloat(rate.today_rate).toFixed(2)}
-                      </span>
-                    )}
-                  </td>
-                  <td className={`${cellStyle} text-center`}>
-                    {editingRowId === rate.rate_id ? (
-                      <button
-                        onClick={() => handleUpdate(rate.rate_id)}
-                        className={buttonStyle}
-                      >
-                        Update
-                      </button>
-                    ) : (
-                      <div className="h-11"></div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {rates.map((rate) => {
+                const isEditing = editingRowId === rate.karat_id;
+                const hasExistingRate = !!rate.rate_id;
+
+                return (
+                  <tr key={rate.karat_id} className="border-b border-gray-800">
+                    <td className={`${cellStyle} text-gray-300 font-semibold`}>{rate.karat_name}</td>
+                    <td className={cellStyle}>
+                      {isEditing || !hasExistingRate ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={rate.today_rate}
+                          onChange={(e) => handleInputChange(e, rate.karat_id)}
+                          className={inputStyle}
+                          placeholder="Enter rate..."
+                          autoFocus
+                        />
+                      ) : (
+                        <span onClick={() => handleEditClick(rate.karat_id)} className="cursor-pointer p-2 text-white hover:bg-[#1f2628] rounded-md">
+                          ₹{parseFloat(rate.today_rate).toFixed(2)}
+                        </span>
+                      )}
+                    </td>
+                    <td className={`${cellStyle} text-center`}>
+                      {isEditing || !hasExistingRate ? (
+                        <button onClick={() => handleSave(rate.karat_id)} className={buttonStyle} disabled={loading}>
+                          {hasExistingRate ? <CheckIcon className="h-5 w-5 mr-2"/> : <PlusIcon className="h-5 w-5 mr-2"/>}
+                          {hasExistingRate ? 'Update' : 'Add Rate'}
+                        </button>
+                      ) : (
+                        <div className="h-11"></div> 
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+               {loading && rates.length === 0 && (
+                    <tr><td colSpan={3} className="text-center p-8 text-gray-400">Loading Karats...</td></tr>
+               )}
+               {!loading && rates.length === 0 && (
+                    <tr><td colSpan={3} className="text-center p-8 text-gray-400">No karats found. Please add karat details first.</td></tr>
+               )}
             </tbody>
-            <tfoot className="bg-[#1f2628]/50">
-              <tr>
-                <td className={cellStyle}>
-                  <select
-                    name="karat_id"
-                    value={newRateData.karat_id}
-                    onChange={handleAddNewChange}
-                    className={inputStyle}
-                  >
-                    <option value="">Select Karat</option>
-                    {karats.map((k) => (
-                      <option key={k.karat_id} value={k.karat_id}>
-                        {k.karat_name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className={cellStyle}>
-                  <input
-                    type="number"
-                    name="today_rate"
-                    value={newRateData.today_rate}
-                    onChange={handleAddNewChange}
-                    step="0.01"
-                    className={inputStyle}
-                    placeholder="Enter rate"
-                  />
-                </td>
-                <td className={`${cellStyle} text-center`}>
-                  <button onClick={handleAddNewSubmit} className={buttonStyle}>
-                    <PlusIcon className="h-5 w-5 mr-2" /> Add Rate
-                  </button>
-                </td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>

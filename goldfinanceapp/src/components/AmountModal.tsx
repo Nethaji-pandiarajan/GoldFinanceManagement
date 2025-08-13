@@ -1,9 +1,7 @@
 // src/components/AmountModal.tsx
 import React, { useState } from "react";
-import axios from "axios";
 import clsx from "clsx";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from '../api';
 type AlertState = {
   show: boolean;
   type: "success" | "error" | "alert";
@@ -54,9 +52,9 @@ export default function AmountModal({
     try {
       const payload = {
         user_id: user.user_id,
-        amount: isAddAction ? numericAmount : -numericAmount,
+        amount_to_add: action === "add" ? numericAmount : -numericAmount,
       };
-      await axios.post(`${API_BASE_URL}/api/users/processed-amounts`, payload);
+      await api.post(`/api/users/investments`, payload);
       onSuccess();
     } catch (err: any) {
       const errorMessage =

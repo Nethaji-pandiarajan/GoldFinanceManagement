@@ -1,8 +1,6 @@
 // src/components/LoanPaymentModal.tsx
 import React, { useState } from 'react';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from '../api';
 type AlertState = { show: boolean; type: 'success' | 'error' | 'alert'; message: string; } | null;
 
 const paymentOptions = ['UPI', 'Debit/Credit Card', 'Cash', 'Other'];
@@ -45,11 +43,10 @@ export default function LoanPaymentModal({ loan, onClose, onSuccess, setAlert }:
         ...formData,
         payment_mode: formData.payment_mode === 'Other' ? formData.remarks : formData.payment_mode,
       };
-      await axios.post(`${API_BASE_URL}/api/loans/${loan.loan_id}/payment`, payload);
+      await api.post(`/api/loans/${loan.loan_id}/payment`, payload);
       onSuccess();
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to record payment.';
-      // We call setAlert but also onClose to see the alert on the main page
       setAlert({ show: true, type: 'error', message: errorMessage });
       onClose(); 
     } finally {

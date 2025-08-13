@@ -5,7 +5,7 @@ exports.getAllKarats = async (req, res) => {
   logger.info(`[KARAT] Request received to GET all karats.`);
   try {
     const result = await db.query(
-      "SELECT karat_id, karat_name, loan_percentage, description FROM datamanagement.gold_karat_details ORDER BY created_on DESC"
+      "SELECT karat_id, karat_name, loan_percentage, description , purity FROM datamanagement.gold_karat_details ORDER BY created_on DESC"
     );
     logger.info(`[KARAT] Successfully retrieved ${result.rows.length} karat details.`);
     res.json(result.rows);
@@ -16,48 +16,59 @@ exports.getAllKarats = async (req, res) => {
 };
 
 exports.createKarat = async (req, res) => {
-  const { karat_name, loan_percentage, description } = req.body;
-  logger.info(`[KARAT] Attempting to CREATE new karat '${karat_name}' with loan percentage '${loan_percentage}%'.`);
-  if (!karat_name || loan_percentage === undefined) {
-    logger.warn(`[KARAT] Validation failed for creating karat '${karat_name}': Missing name or loan percentage.`);
-    return res.status(400).json({ message: "Karat name and loan percentage are required." });
-  }
+    const { karat_name, loan_percentage, purity, description } = req.body; 
+    logger.info(`[KARAT] Attempting to CREATE new karat '${karat_name}' with loan percentage '${loan_percentage}%' and purity '${purity}%'.`);
 
-  try {
-    const query = `
-      INSERT INTO datamanagement.gold_karat_details (karat_name, loan_percentage, description)
-      VALUES ($1, $2, $3);
-    `;
-    await db.query(query, [karat_name, loan_percentage, description || null]);
-    logger.info(`[KARAT] Successfully CREATED karat '${karat_name}'.`);
-    res.status(201).json({ message: "Gold karat detail created successfully!" });
-  } catch (error) {
-    logger.error(`[KARAT] Error CREATING karat '${karat_name}': ${error.message}`, { stack: error.stack });
-    res.status(500).json({ message: "Server error during creation." });
-  }
+    if (!karat_name || loan_percentage === undefined || purity === undefined) {
+        logger.warn(`[KARAT] Validation failed for creating karat '${karat_name}': Missing required fields.`);
+        return res.status(400).json({ message: "Karat name, loan percentage, and purity are required." });
+    }
+
+    try {
+        const existingKarat = await db.query("SELECT 1 FROM datamanagement.gold_karat_details WHERE karat_name = $1", [karat_name]);
+        if (existingKarat.rows.length > 0) {
+            logger.warn(`[KARAT] Create failed: Karat with name '${karat_name}' already exists.`);
+            return res.status(409).json({ message: `A karat with the name '${karat_name}' already exists.` });
+        }
+        const query = `
+          INSERT INTO datamanagement.gold_karat_details (karat_name, loan_percentage, description, purity)
+          VALUES ($1, $2, $3, $4);
+        `;
+        await db.query(query, [karat_name, loan_percentage, description || null, purity]);
+        
+        logger.info(`[KARAT] Successfully CREATED karat '${karat_name}'.`);
+        res.status(201).json({ message: "Gold karat detail created successfully!" });
+    } catch (error) {
+        if (error.code === '23505') {
+             logger.error(`[KARAT] Unique constraint violation for karat '${karat_name}': ${error.message}`);
+             return res.status(409).json({ message: `A karat with the name '${karat_name}' already exists.` });
+        }
+        logger.error(`[KARAT] Error CREATING karat '${karat_name}': ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during creation." });
+    }
 };
 
 exports.updateKaratById = async (req, res) => {
   const { id } = req.params;
-  const { karat_name, loan_percentage, description } = req.body;
+  const { loan_percentage, description  , purity } = req.body;
   const parsedId = parseInt(id, 10);
   logger.info(`[KARAT] Attempting to UPDATE karat with ID '${id}' to name '${karat_name}' and percentage '${loan_percentage}%'.`);
   if (isNaN(parsedId)) {
     logger.warn(`[KARAT] Update failed: Invalid Karat ID provided: '${id}'.`);
     return res.status(400).json({ message: "Invalid karat ID." });
   }
-  if (!karat_name || loan_percentage === undefined) {
-    logger.warn(`[KARAT] Validation failed for updating karat ID '${id}': Missing name or loan percentage.`);
-    return res.status(400).json({ message: "Karat name and loan percentage are required." });
+  if (loan_percentage === undefined || purity === undefined) {
+      logger.warn(`[KARAT] Validation failed for updating karat ID '${id}': Missing loan percentage or purity.`);
+      return res.status(400).json({ message: "Loan percentage and purity are required." });
   }
 
   try {
     const query = `
-      UPDATE datamanagement.gold_karat_details SET
-        karat_name = $1, loan_percentage = $2, description = $3, updated_on = CURRENT_TIMESTAMP
-      WHERE karat_id = $4;
-    `;
-    const result = await db.query(query, [karat_name, loan_percentage, description || null, parsedId]);
+          UPDATE datamanagement.gold_karat_details SET
+            loan_percentage = $1, description = $2, purity = $3, updated_on = CURRENT_TIMESTAMP
+          WHERE karat_id = $4;
+        `;
+    const result = await db.query(query, [loan_percentage, description || null, purity, parsedId]);
 
     if (result.rowCount === 0) {
       logger.warn(`[KARAT] Failed to UPDATE karat: Karat with ID '${id}' not found.`);
