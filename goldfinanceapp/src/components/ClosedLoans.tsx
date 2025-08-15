@@ -1,4 +1,3 @@
-// src/components/ClosedLoans.tsx
 import { useRef } from 'react';
 import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-dt';

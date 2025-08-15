@@ -120,7 +120,7 @@ exports.getCustomerByUuid = async (req, res) => {
   logger.info(`[CUSTOMER] Request received to GET customer by UUID: ${uuid}`);
   try {
     const query = `
-          SELECT c.*, n.* FROM datamanagement.customers c
+          SELECT c.*, n.*,c.current_address FROM datamanagement.customers c
           LEFT JOIN datamanagement.nominees n ON c.nominee_id = n.nominee_id
           WHERE c.customer_uuid = $1;
         `;
@@ -263,7 +263,8 @@ exports.getCustomersList = async (req, res) => {
                 c.customer_id, 
                 c.customer_name, 
                 c.phone,
-                n.nominee_id,  -- Add nominee_id
+                c.customer_uuid,
+                n.nominee_id,
                 n.nominee_name
             FROM 
                 datamanagement.customers c
@@ -277,6 +278,7 @@ exports.getCustomersList = async (req, res) => {
             id: c.customer_id,
             name: c.customer_name,
             phone: c.phone,
+            uuid: c.customer_uuid,
             nominee_id: c.nominee_id,
             nominee_name: c.nominee_name
         }));

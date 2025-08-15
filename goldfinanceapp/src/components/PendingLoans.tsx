@@ -1,4 +1,3 @@
-// src/components/PendingLoans.tsx
 import { useRef } from "react";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
@@ -8,6 +7,14 @@ DataTable.use(DT);
 
 export default function PendingLoans() {
   const tableRef = useRef<any>();
+  const ajaxConfig = {
+    url: `${API_BASE_URL}/api/loans/pending`,
+    dataSrc: '',
+    headers: {
+      'x-auth-token': localStorage.getItem('authToken') || ''
+    }
+  };
+
   const tableColumns = [
     { title: "Loan ID", data: "loan_id" },
     { title: "Customer Name", data: "customer_name" },
@@ -44,7 +51,7 @@ export default function PendingLoans() {
         id="pendingLoanTable"
         ref={tableRef}
         className="display w-full"
-        ajax={{ url: `${API_BASE_URL}/api/loans/pending`, dataSrc: "" }}
+        ajax={ajaxConfig}
         columns={tableColumns}
       >
         <thead>
