@@ -15,8 +15,8 @@ exports.getDashboardStats = async (req, res) => {
             weeklyCustomersRes
         ] = await Promise.all([
             client.query('SELECT COUNT(*) FROM datamanagement.customers'),
-            client.query('SELECT COUNT(*), SUM(amount_issued) FROM datamanagement.loan_details'),
-            client.query('SELECT SUM(amount_paid) FROM datamanagement.loan_interest_payments'),
+            client.query('SELECT COUNT(*), SUM(net_amount_issued) FROM datamanagement.loan_details'),
+            client.query('SELECT SUM(interest_amount_paid) FROM datamanagement.loan_payments'),
             client.query('SELECT SUM(total_invested) FROM datamanagement.users'),
             client.query("SELECT today_rate FROM datamanagement.gold_rate WHERE karat_name = '22K'"),
             

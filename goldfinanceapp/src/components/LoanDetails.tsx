@@ -1,34 +1,26 @@
-// src/components/LoanDetails.tsx
 import { useState, useEffect, useRef } from "react";
 import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import AlertNotification from "./AlertNotification";
-import ConfirmationDialog from "./ConfirmationDialog";
 import ViewLoanModal from "./ViewLoanModal";
 import LoanPaymentModal from "./LoanPaymentModal";
 import clsx from 'clsx';
+import ConfirmationDialog from "./ConfirmationDialog";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 DataTable.use(DT);
 
-type AlertState = {
-  show: boolean;
-  type: "success" | "error" | "alert";
-  message: string;
-} | null;
+const formatCurrency = (value: any) => `₹${parseFloat(String(value) || '0').toLocaleString("en-IN")}`;
 
-type LoanDetailsProps = {
-  setActiveItem: (name: string) => void;
-};
+type LoanDetailsProps = { setActiveItem: (name: string) => void; };
 
 export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
-  const [alert, setAlert] = useState<AlertState>(null);
+  const [alert, setAlert] = useState<any>(null);
   const [viewData, setViewData] = useState<any | null>(null);
   const [paymentData, setPaymentData] = useState<any | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const tableRef = useRef<any>();
-
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     try {
@@ -39,35 +31,24 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
         type: "success",
         message: "Loan deleted successfully!",
       });
-    } catch (error) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Could not delete loan.",
-      });
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Could not delete loan.";
+      setAlert({ show: true, type: "error", message });
     } finally {
       setItemToDelete(null);
     }
   };
-
-  const handleActionClick = async (
-    action: "view" | "edit" | "delete" | "payment",
-    loan: any
-  ) => {
+  const handleActionClick = async (action: "view" | "payment" | "delete", loan: any) => {
     if (action === "delete") {
       setItemToDelete(loan.loan_id);
-    } else if (action === "payment") {
+    }else if (action === "payment") {
       setPaymentData(loan);
     } else if (action === "view") {
       try {
         const response = await api.get(`/api/loans/${loan.loan_id}`);
         setViewData(response.data);
       } catch (error) {
-        setAlert({
-          show: true,
-          type: "error",
-          message: "Could not fetch loan details.",
-        });
+        setAlert({ show: true, type: "error", message: "Could not fetch full loan details." });
       }
     }
   };
@@ -88,49 +69,22 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
       return () => tableElement.removeEventListener("click", listener);
     }
   }, []);
+
   const ajaxConfig = {
     url: `${API_BASE_URL}/api/loans`,
     dataSrc: "",
-    headers: {
-      'x-auth-token': localStorage.getItem('authToken') || ''
-    }
+    headers: { 'x-auth-token': localStorage.getItem('authToken') || '' }
   };
+
   const tableColumns = [
     { title: "Loan ID", data: "loan_id" },
     { title: "Customer Name", data: "customer_name" },
-    {
-      title: "Amount Issued",
-      data: "amount_issued",
-      render: (data: string) => `₹${parseFloat(data).toLocaleString("en-IN")}`,
-    },
-    {
-      title: "Amount Paid",
-      data: "principal_amount_paid",
-      render: (data: string) => `₹${parseFloat(data).toLocaleString("en-IN")}`,
-    },
-    {
-      title: "Interest Paid",
-      data: "interest_paid",
-      render: (data: string) => `₹${parseFloat(data).toLocaleString("en-IN")}`,
-    },
-    {
-      title: "Interest Rate",
-      data: "interest_rate",
-      render: (data: string) => `${parseFloat(data).toFixed(2)}%`,
-    },
-    {
-      title: "Due Date",
-      data: "due_date",
-      render: (data: string) => new Date(data).toLocaleDateString(),
-    },
+    { title: "Net Principal Amount", data: "net_amount_issued", render: (data: any) => formatCurrency(data) },
+    { title: "Total Interest Paid", data: "total_interest_paid", render: (data: any) => formatCurrency(data) },
     { 
       title: 'Status', 
       data: 'completion_status',
-      render: (data: string) => {
-        const isCompleted = data === 'Completed';
-        const badgeClass = isCompleted ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300';
-        return `<span class="${clsx('px-2 py-1 text-xs font-semibold rounded-full', badgeClass)}">${data}</span>`;
-      }
+      render: (data: string) => `<span class="${clsx('px-2 py-1 text-xs font-semibold rounded-full', data === 'Completed' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300')}">${data}</span>`
     },
     {
       title: "Actions",
@@ -148,9 +102,7 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
             <button title="Make Payment" data-action="payment" data-row='${JSON.stringify(
               row
             )}' class="p-2 rounded-full text-yellow-400 hover:bg-yellow-500/20">${paymentIcon}</button>
-            <button title="Delete Loan" data-action="delete" data-row='${JSON.stringify(
-              row
-            )}' class="p-2 rounded-full text-red-500 hover:bg-red-500/20">${deleteIcon}</button>
+            <button title="Delete Loan" data-action="delete" data-row='${JSON.stringify(row)}' class="p-2 rounded-full text-red-500 hover:bg-red-500/20">${deleteIcon}</button>
           </div>
         `;
       },
@@ -170,36 +122,24 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
   };
 
   return (
-    <>
-      {alert?.show && (
-        <AlertNotification {...alert} onClose={() => setAlert(null)} />
-      )}
-      {viewData && (
-        <ViewLoanModal loanData={viewData} onClose={() => setViewData(null)} />
-      )}
-      {paymentData && (
-        <LoanPaymentModal
-          loan={paymentData}
-          onClose={() => setPaymentData(null)}
-          onSuccess={handleSuccess}
-          setAlert={setAlert}
-        />
-      )}
+     <>
+      {alert?.show && <AlertNotification {...alert} onClose={() => setAlert(null)} />}
+      {viewData && <ViewLoanModal loanData={viewData} onClose={() => setViewData(null)} />}
+      {paymentData && <LoanPaymentModal loan={paymentData} onClose={() => setPaymentData(null)} onSuccess={handleSuccess} setAlert={setAlert} />}
       {itemToDelete && (
         <ConfirmationDialog
           type="delete"
-          message="Are you sure you want to delete this loan?"
+          message="Are you sure you want to delete this loan? This will also delete all associated payments and pledged ornaments."
           onConfirm={handleConfirmDelete}
           onCancel={() => setItemToDelete(null)}
         />
       )}
-
       <div className="bg-[#111315] p-6 rounded-lg shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-[#c69909]">Loan Details</h1>
           <button
             onClick={() => setActiveItem("New Loan Application")}
-            className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500"
+            className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
             New Loan Application
@@ -216,11 +156,8 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
             <tr>
               <th>Loan ID</th>
               <th>Customer Name</th>
-              <th>Amount Issued</th>
-              <th>Amount Paid</th>
-              <th>Interest Paid</th>
-              <th>Interest Rate</th>
-              <th>Due Date</th>
+              <th>Net Principal Amount</th>
+              <th>Total Interest Paid</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>

@@ -14,7 +14,7 @@ type AddGoldKaratFormProps = {
 
 export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess, setAlert  , availableOptions}: AddGoldKaratFormProps) {
   const [formData, setFormData] = useState({
-    loan_percentage: "",
+    loan_to_value: "",
     description: "",
     purity: "",
   });
@@ -24,7 +24,7 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setFormData({
-        loan_percentage: initialData.loan_percentage || "",
+        loan_to_value: initialData.loan_to_value || "",
         description: initialData.description || "",
         purity: initialData.purity || "",
       });
@@ -151,8 +151,17 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
               </div>
             )}
             <div>
-              <label className={labelStyle}>Loan Percentage (%)*</label>
-              <input type="number" name="loan_percentage" value={formData.loan_percentage} onChange={handleChange} className={inputStyle} required placeholder="e.g., 75.50" step="0.01" />
+              <label className={labelStyle}>Loan to Value (LTV) (%)*</label>
+              <input 
+                type="number" 
+                name="loan_to_value" 
+                value={formData.loan_to_value} 
+                onChange={handleChange} 
+                className={inputStyle} 
+                required 
+                placeholder="e.g., 75.50" 
+                step="0.01" 
+              />
             </div>
 
             <div>
