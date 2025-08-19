@@ -12,6 +12,7 @@ import {
   Squares2X2Icon,
   DocumentTextIcon,
   BanknotesIcon,
+  BeakerIcon,
 } from "@heroicons/react/24/solid";
 import clsx from "clsx";
 
@@ -24,6 +25,7 @@ const originalNavigation = [
   { name: "Ornaments Details", icon: BuildingStorefrontIcon, type: "default" },
   { name: "Gold Karat Details", icon: ScaleIcon, type: "default" },
   { name: "Gold Rate", icon: CurrencyDollarIcon, type: "default" },
+  { name: "Schemes", icon: BeakerIcon, type: "default" },
   { name: "Processing Amount", icon: CogIcon, type: "default" },
 ];
 

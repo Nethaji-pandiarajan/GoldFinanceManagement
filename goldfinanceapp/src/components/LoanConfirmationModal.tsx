@@ -32,7 +32,8 @@ export default function LoanConfirmationModal({
   customer,
   ornaments,
   loading,
-  customerDisplayDetails
+  customerDisplayDetails,
+  selectedScheme
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -42,6 +43,7 @@ export default function LoanConfirmationModal({
   ornaments: any[];
   loading: boolean;
   customerDisplayDetails: any;
+  selectedScheme : any;
 }) {
   if (!isOpen) return null;
 
@@ -63,18 +65,11 @@ export default function LoanConfirmationModal({
                   
                   <section>
                     <SectionHeader title="Loan Details" />
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <DetailItem label="Loan ID" value={loanDetails.loan_id} />
-                      <DetailItem label="Processing Fee" value={formatCurrency(loanDetails.processing_fee)} />
+                      <DetailItem label="Scheme" value={selectedScheme?.scheme_name} />
                       <DetailItem label="Interest Rate" value={`${loanDetails.interest_rate}%`} />
-                    </div>
-                  </section>
-
-                  <section>
-                    <SectionHeader title="Loan Timeline" />
-                    <div className="grid grid-cols-3 gap-4">
-                      <DetailItem label="Loan Date" value={new Date(loanDetails.loan_date).toLocaleDateString()} />
-                      <DetailItem label="Loan Time" value={loanDetails.loan_time} />
+                      <DetailItem label="Loan Date & Time" value={new Date(loanDetails.loan_datetime).toLocaleString()} />
                       <DetailItem label="Due Date" value={new Date(loanDetails.due_date).toLocaleDateString()} />
                     </div>
                   </section>
@@ -90,10 +85,10 @@ export default function LoanConfirmationModal({
                                 <DetailItem label="Nominee" value={`${customerDisplayDetails?.nominee_name} (${customerDisplayDetails?.nominee_mobile})`} />
                             </div>
                         </div>
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center">\
                             <DetailItem label="Customer Image" value="" />
                             <div className="w-32 h-40 bg-black/20 rounded-md border border-gray-700 flex items-center justify-center">
-                                {customerDisplayDetails?.customer_image ? <img src={bufferToBase64(customerDisplayDetails.customer_image)} alt="Customer" className="w-full h-full object-cover rounded-md" /> : <span className="text-gray-500 text-sm">No Image</span>}
+                                {customerDisplayDetails?.customer_image ? <img src={bufferToBase64(customerDisplayDetails.customer_image)??undefined} alt="Customer" className="w-full h-full object-cover rounded-md" /> : <span className="text-gray-500 text-sm">No Image</span>}
                             </div>
                         </div>
                     </div>
@@ -101,30 +96,50 @@ export default function LoanConfirmationModal({
 
                   <section>
                     <SectionHeader title={`Ornaments Pledged (${ornaments.length})`} />
-                    <div className="space-y-3">
-                      {ornaments.map((orn, index) => (
-                        <div key={index} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 items-center p-2 bg-[#1f2628] rounded-md text-sm">
-                          <span className="font-semibold text-white">{orn.ornament_name}</span>
-                          <span className="text-gray-300">{orn.material_type}</span>
-                          <span className="text-gray-300">{orn.grams}g @ {orn.karat}</span>
-                          {orn.image_preview && <img src={orn.image_preview} alt="Ornament" className="h-10 w-10 rounded-md object-cover" />}
-                        </div>
-                      ))}
+                    <div className="overflow-x-auto rounded-lg border border-gray-700">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-[#1f2628] text-gray-300 uppercase tracking-wider">
+                          <tr>
+                            <th className="p-3">Ornament Name</th>
+                            <th className="p-3">Material</th>
+                            <th className="p-3">Grams</th>
+                            <th className="p-3">Karat</th>
+                            <th className="p-3">Image</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {ornaments.map((orn, index) => (
+                            <tr key={index} className="hover:bg-white/5">
+                              <td className="p-3 font-semibold text-white">{orn.ornament_name}</td>
+                              <td className="p-3 text-gray-300">{orn.material_type}</td>
+                              <td className="p-3 text-gray-300">{orn.grams}g</td>
+                              <td className="p-3 text-gray-300">{orn.karat}</td>
+                              <td className="p-3">
+                                {orn.image_preview ? 
+                                  <img src={orn.image_preview} alt="Ornament" className="h-10 w-10 rounded-md object-cover" /> :
+                                  <span className="text-xs text-gray-500">No Img</span>
+                                }
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </section>
 
                   <section>
-                    <SectionHeader title="Final Amounts" />
-                    <div className="grid grid-cols-2 gap-4 text-lg">
+                    <SectionHeader title="Final Amounts & Fees" />
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-lg">
                         <DetailItem label="Eligible Amount" value={formatCurrency(loanDetails.eligible_amount)} />
                         <DetailItem label="Amount Issued" value={formatCurrency(loanDetails.amount_issued)} />
+                        <DetailItem label="Processing Fee" value={formatCurrency(loanDetails.processing_fee)} />
                     </div>
                   </section>
                 </div>
 
                 <div className="mt-8 flex justify-end space-x-4">
                   <button type="button" className="px-6 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-semibold" onClick={onClose} disabled={loading}>Cancel</button>
-                  <button type="button" className="px-6 py-2 rounded bg-[#c69909] hover:bg-yellow-500 text-black font-semibold" onClick={onConfirm} disabled={loading}>{loading ? "Submitting..." : "Confirm & Submit"}</button>
+                  <button type="button" className="px-6 py-2 rounded bg-[#c69909] hover:bg-yellow-500 text-black font-semibold" onClick={onConfirm} disabled={loading}>{loading ? "Processing..." : "Confirm & Proceed"}</button>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
