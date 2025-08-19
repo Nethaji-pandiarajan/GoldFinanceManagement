@@ -20,6 +20,8 @@ const userRoutes = require("./routes/user.routes");
 const utilityRoutes = require("./routes/utility.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const processingRoutes = require("./routes/processing.routes");
+const otpRoutes = require("./routes/otp.routes.js");
+const schemeRoutes = require("./routes/scheme.routes.js");
 app.use("/api/auth", authRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/ornaments", ornamentRoutes);
@@ -30,6 +32,8 @@ app.use("/api/users", userRoutes);
 app.use("/api", utilityRoutes); 
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/processing", processingRoutes);
+app.use("/api/otp", otpRoutes);
+app.use("/api/schemes", schemeRoutes);
 app.listen(PORT, () => {
   console.log(`✅ Backend server is running on http://localhost:${PORT}`);
 });

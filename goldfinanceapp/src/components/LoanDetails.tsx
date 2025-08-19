@@ -41,12 +41,15 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
   const handleActionClick = async (action: "view" | "payment" | "delete", loan: any) => {
     if (action === "delete") {
       setItemToDelete(loan.loan_id);
-    }else if (action === "payment") {
-      setPaymentData(loan);
-    } else if (action === "view") {
+    }else {
       try {
         const response = await api.get(`/api/loans/${loan.loan_id}`);
-        setViewData(response.data);
+        setAlert(null);
+        if (action === "view") {
+          setViewData(response.data);
+        } else if (action === "payment") {
+          setPaymentData(response.data);
+        }
       } catch (error) {
         setAlert({ show: true, type: "error", message: "Could not fetch full loan details." });
       }

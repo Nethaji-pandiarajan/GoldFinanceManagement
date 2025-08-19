@@ -1,3 +1,4 @@
+//src/components//layouts
 import Sidebar from "../Sidebar";
 import Dashboard from "../Dashboard";
 import TopNavbar from "../TopNavbar";
@@ -14,7 +15,7 @@ import PendingLoans from '../PendingLoans';
 import ClosedLoans from '../ClosedLoans';
 import TotalInvestments from "../TotalInvestments";
 import ProfilePage from "../ProfilePage";
-
+import Schemes from "../Schemes";
 interface User {
   id: number;
   username: string;
@@ -56,6 +57,8 @@ export default function MainLayout({ onLogout, user }: MainLayoutProps) {
         return <ClosedLoans />;
       case 'My Profile':
         return <ProfilePage />;
+      case "Schemes":
+        return <Schemes />;
       default:
         return <Dashboard />;
     }

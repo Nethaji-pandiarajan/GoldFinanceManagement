@@ -1,5 +1,6 @@
 const db = require("../db");
 const logger = require("../config/logger");
+const axios = require('axios');
 exports.getNextLoanId = async (req, res) => {
     logger.info(`[LOAN] Request received to GET next loan ID.`);
     try {
@@ -106,21 +107,31 @@ exports.createLoan = async (req, res) => {
         }
         const startDate = new Date(loanDetails.loan_datetime);
         const endDate = new Date(loanDetails.due_date);
-        let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
-        months -= startDate.getMonth();
-        months += endDate.getMonth();
-        const totalMonths = months <= 0 ? 1 : months + 1;
+        let installments = [];
+        let currentMonth = new Date(startDate);
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+
+        while (currentMonth <= endDate) {
+            installments.push(new Date(currentMonth));
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        if (installments.length === 0 && endDate > startDate) {
+            installments.push(new Date(endDate));
+        }
+
+        const totalMonths = installments.length;
+
+        if (totalMonths === 0) {
+            return res.status(400).json({ message: "Loan duration cannot be zero days." });
+        }
         const monthlyPrincipal = parseFloat(netAmountIssued) / totalMonths;
         const monthlyInterest = (netAmountIssued * (parseFloat(loanDetails.interest_rate) / 100)) / 12;
 
-        for (let i = 0; i < totalMonths; i++) {
-            const paymentMonth = new Date(startDate);
-            paymentMonth.setMonth(paymentMonth.getMonth() + i + 1);
-
+        for (const paymentMonth of installments) {
             const paymentQuery = `
-              INSERT INTO datamanagement.loan_payments 
-              (loan_id, payment_month, principal_amount_due, interest_amount_due)
-              VALUES ($1, $2, $3, $4);
+            INSERT INTO datamanagement.loan_payments 
+            (loan_id, payment_month, principal_amount_due, interest_amount_due)
+            VALUES ($1, $2, $3, $4);
             `;
             await client.query(paymentQuery, [
                 newLoanId, 
@@ -225,39 +236,49 @@ exports.recordPayment = async (req, res) => {
     logger.info(`[LOAN] Attempting to RECORD PAYMENT for loan ID '${id}'. Principal: ${principal_payment}, Interest: ${interest_payment}.`);
 
     const parsedLoanId = parseInt(id, 10);
-    const principalAmount = parseFloat(principal_payment) || 0;
-    const interestAmount = parseFloat(interest_payment) || 0;
+    let principalToApply = parseFloat(principal_payment) || 0;
+    let interestToApply = parseFloat(interest_payment) || 0;
 
-    if (isNaN(parsedLoanId) || (principalAmount <= 0 && interestAmount <= 0)) {
-        logger.warn(`[LOAN] Payment validation failed for loan ID '${id}': Invalid ID or no positive payment amount provided.`);
+    if (isNaN(parsedLoanId) || (principalToApply <= 0 && interestToApply <= 0)) {
         return res.status(400).json({ message: "Valid Loan ID and a positive payment amount are required." });
     }
 
     const client = await db.pool.connect();
     try {
         await client.query("BEGIN");
-        if (principalAmount > 0) {
-            await client.query(
-                `UPDATE datamanagement.loan_details SET principal_amount_paid = principal_amount_paid + $1, updated_on = CURRENT_TIMESTAMP WHERE loan_id = $2;`,
-                [principalAmount, parsedLoanId]
-            );
-            logger.info(`[LOAN] Applied total principal payment of ${principalAmount} to loan ID '${id}'.`);
-        }
-        if (interestAmount > 0 || principalAmount > 0) {
-            const installmentToUpdate = await client.query(
-                `SELECT payment_id FROM datamanagement.loan_payments WHERE loan_id = $1 AND payment_status != 'Paid' ORDER BY payment_month ASC LIMIT 1`,
-                [parsedLoanId]
-            );
+        const installmentsRes = await client.query(
+            `SELECT * FROM datamanagement.loan_payments 
+             WHERE loan_id = $1 AND payment_status != 'Paid' 
+             ORDER BY payment_month ASC`,
+            [parsedLoanId]
+        );
+        const installments = installmentsRes.rows;
 
-            if (installmentToUpdate.rows.length > 0) {
-                const installmentId = installmentToUpdate.rows[0].payment_id;
-                
+        if (installments.length === 0) {
+            logger.warn(`[LOAN] No unpaid installments found for loan ID '${id}' to apply payment.`);
+            await client.query("ROLLBACK");
+            return res.status(404).json({ message: "No pending payments found for this loan." });
+        }
+
+        let totalPrincipalPaidInTx = 0;
+        for (const installment of installments) {
+            if (principalToApply <= 0 && interestToApply <= 0) break; 
+
+            const principalDue = parseFloat(installment.principal_amount_due) - parseFloat(installment.principal_amount_paid);
+            const interestDue = parseFloat(installment.interest_amount_due) - parseFloat(installment.interest_amount_paid);
+
+            const principalPaidThisTime = Math.min(principalToApply, principalDue);
+            const interestPaidThisTime = Math.min(interestToApply, interestDue);
+            
+            totalPrincipalPaidInTx += principalPaidThisTime;
+
+            if (principalPaidThisTime > 0 || interestPaidThisTime > 0) {
                 await client.query(
                     `UPDATE datamanagement.loan_payments SET
-                       principal_amount_paid = principal_amount_paid + $1::DECIMAL,
-                       interest_amount_paid = interest_amount_paid + $2::DECIMAL,
+                       principal_amount_paid = principal_amount_paid + $1,
+                       interest_amount_paid = interest_amount_paid + $2,
                        payment_status = CASE 
-                                        WHEN (principal_amount_due + interest_amount_due) <= (principal_amount_paid + $1::DECIMAL + interest_amount_paid + $2::DECIMAL)
+                                        WHEN (principal_amount_due - (principal_amount_paid + $1)) <= 0.01 AND (interest_amount_due - (interest_amount_paid + $2)) <= 0.01
                                         THEN 'Paid' 
                                         ELSE 'Partial' 
                                       END,
@@ -266,36 +287,37 @@ exports.recordPayment = async (req, res) => {
                        payment_date = CURRENT_TIMESTAMP, 
                        updated_on = CURRENT_TIMESTAMP
                      WHERE payment_id = $5;`,
-                    [principalAmount, interestAmount, payment_mode, remarks, installmentId]
+                    [principalPaidThisTime.toFixed(2), interestPaidThisTime.toFixed(2), payment_mode, remarks, installment.payment_id]
                 );
-                logger.info(`[LOAN] Applied payment to installment ID '${installmentId}'. Principal: ${principalAmount}, Interest: ${interestAmount}.`);
-            } else {
-                 logger.warn(`[LOAN] No unpaid installments found for loan ID '${id}' to apply payment.`);
             }
+
+            principalToApply -= principalPaidThisTime;
+            interestToApply -= interestPaidThisTime;
         }
-        const loanTotals = await client.query(
-            "SELECT net_amount_issued, principal_amount_paid FROM datamanagement.loan_details WHERE loan_id = $1",
+        if (totalPrincipalPaidInTx > 0) {
+            await client.query(
+                `UPDATE datamanagement.loan_details SET principal_amount_paid = principal_amount_paid + $1, updated_on = CURRENT_TIMESTAMP WHERE loan_id = $2;`,
+                [totalPrincipalPaidInTx.toFixed(2), parsedLoanId]
+            );
+        }
+        const finalStatusCheck = await client.query(
+            `SELECT ld.net_amount_issued, ld.principal_amount_paid, 
+                    (SELECT COUNT(*) FROM datamanagement.loan_payments WHERE loan_id = $1 AND payment_status != 'Paid') as pending_installments
+             FROM datamanagement.loan_details ld WHERE ld.loan_id = $1`,
             [parsedLoanId]
         );
 
-        const interestCheck = await client.query(
-            "SELECT COUNT(*) FROM datamanagement.loan_payments WHERE loan_id = $1 AND payment_status != 'Paid'",
-            [parsedLoanId]
-        );
-
-        const isPrincipalFullyPaid = parseFloat(loanTotals.rows[0].principal_amount_paid) >= parseFloat(loanTotals.rows[0].net_amount_issued);
-        const hasNoPendingInstallments = parseInt(interestCheck.rows[0].count, 10) === 0;
+        const isPrincipalFullyPaid = parseFloat(finalStatusCheck.rows[0].principal_amount_paid) >= parseFloat(finalStatusCheck.rows[0].net_amount_issued);
+        const hasNoPendingInstallments = parseInt(finalStatusCheck.rows[0].pending_installments, 10) === 0;
 
         if (isPrincipalFullyPaid && hasNoPendingInstallments) {
-            await client.query(
-                "UPDATE datamanagement.loan_details SET completion_status = 'Completed' WHERE loan_id = $1",
-                [parsedLoanId]
-            );
+            await client.query( "UPDATE datamanagement.loan_details SET completion_status = 'Completed' WHERE loan_id = $1", [parsedLoanId] );
             logger.info(`[LOAN] Loan ID '${id}' status changed to 'Completed' after final payment.`);
         }
         
         await client.query("COMMIT");
         res.status(200).json({ message: "Payment recorded successfully!" });
+
     } catch (error) {
         await client.query("ROLLBACK");
         logger.error(`[LOAN] Error RECORDING PAYMENT for loan ID '${id}': ${error.message}`, { stack: error.stack });
@@ -306,29 +328,40 @@ exports.recordPayment = async (req, res) => {
 };
 
 exports.getPendingLoans = async (req, res) => {
-    logger.info(`[LOAN] Request received to GET all PENDING loans.`);
+    logger.info(`[LOAN] Request received to GET all PENDING loans with details.`);
     try {
         const query = `
           SELECT
             ld.loan_id,
             c.customer_name,
+            c.phone,
             ld.amount_issued,
             ld.principal_amount_paid,
-            (SELECT SUM(lp.interest_amount_paid) FROM datamanagement.loan_payments lp WHERE lp.loan_id = ld.loan_id) as interest_paid,
             ld.interest_rate,
             ld.due_date,
-            ld.completion_status
+            -- Columns from our LATERAL JOIN
+            next_payment.payment_month as next_payment_month,
+            (next_payment.principal_amount_due - next_payment.principal_amount_paid) as principal_due,
+            (next_payment.interest_amount_due - next_payment.interest_amount_paid) as interest_due
           FROM 
             datamanagement.loan_details ld
           JOIN 
             datamanagement.customers c ON ld.customer_id = c.customer_id
+          -- Use a LATERAL JOIN to get the next pending payment for each loan
+          JOIN LATERAL (
+              SELECT *
+              FROM datamanagement.loan_payments lp
+              WHERE lp.loan_id = ld.loan_id AND lp.payment_status != 'Paid'
+              ORDER BY lp.payment_month ASC
+              LIMIT 1
+          ) AS next_payment ON TRUE
           WHERE 
             ld.completion_status = 'Pending'
           ORDER BY 
-            ld.due_date ASC;
+            next_payment.payment_month ASC;
         `;
         const result = await db.query(query);
-        logger.info(`[LOAN] Successfully retrieved ${result.rows.length} PENDING loans.`);
+        logger.info(`[LOAN] Successfully retrieved ${result.rows.length} PENDING loans with details.`);
         res.json(result.rows);
     } catch (error) {
         logger.error(`[LOAN] Error fetching PENDING loans: ${error.message}`, { stack: error.stack });
@@ -396,5 +429,46 @@ exports.getNextPaymentDue = async (req, res) => {
     } catch (error) {
         logger.error(`[LOAN] Error fetching next payment due for loan ID ${id}: ${error.message}`, { stack: error.stack });
         res.status(500).json({ message: "Server error." });
+    }
+};
+
+exports.sendPaymentReminder = async (req, res) => {
+    const { loan_id } = req.params;
+    const { customer_name, phone, amount_due, interest_due } = req.body;
+    logger.info(`[LOAN] Attempting to send payment reminder for Loan ID #${loan_id} to ${customer_name}.`);
+
+    if (!customer_name || !phone || !amount_due || !interest_due) {
+        return res.status(400).json({ message: "Customer name, phone, amount due, and interest due are required." });
+    }
+
+    const mobileNumber = `91${phone.slice(-10)}`;
+    const totalDue = (parseFloat(amount_due) + parseFloat(interest_due)).toFixed(2);
+
+    const msg91ApiUrl = `https://api.msg91.com/api/v5/flow/`;
+
+    const payload = {
+        template_id: process.env.MSG91_PAYMENT_REMINDER_TEMPLATE_ID,
+        sender: "YOUR_SENDER_ID",
+        short_url: "1",
+        mobiles: mobileNumber,
+        name: customer_name,
+        loanid: loan_id,
+        amount: totalDue
+    };
+
+    try {
+        const response = await axios.post(msg91ApiUrl, payload, {
+            headers: { 'authkey': process.env.MSG91_AUTH_KEY }
+        });
+
+        if (response.data.type === 'success') {
+            logger.info(`[LOAN] Successfully sent reminder for Loan ID #${loan_id}.`);
+            res.status(200).json({ message: "Payment reminder sent successfully." });
+        } else {
+            throw new Error(response.data.message || 'MSG91 API error');
+        }
+    } catch (error) {
+        logger.error(`[LOAN] Failed to send reminder for Loan ID #${loan_id}: ${error.message}`);
+        res.status(500).json({ message: "Failed to send payment reminder." });
     }
 };

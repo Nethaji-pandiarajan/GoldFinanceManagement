@@ -16,6 +16,6 @@ router.get("/:id/next-payment", authMiddleware, loanController.getNextPaymentDue
 router.get("/:id", authMiddleware, loanController.getLoanById);
 router.delete("/:id", authMiddleware, loanController.deleteLoanById);
 router.post("/:id/payment", authMiddleware, loanController.recordPayment);
-
+router.post("/:loan_id/remind", authMiddleware, loanController.sendPaymentReminder);
 
 module.exports = router;
