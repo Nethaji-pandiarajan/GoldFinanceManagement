@@ -36,6 +36,7 @@ function App() {
       let isLicensed = false;
       try {
         isLicensed = await invoke('check_license') as boolean;
+        
       } catch (e) {
         console.error("License check failed to communicate with Rust:", e);
         isLicensed = false;

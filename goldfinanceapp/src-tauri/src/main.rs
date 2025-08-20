@@ -29,15 +29,16 @@ fn get_machine_info() -> (String, String) {
 #[tauri::command]
 async fn check_license() -> Result<bool, String> {
     let (cpu_brand, mac_address) = get_machine_info();
+    let conn_str = "host=localhost user=postgres password=sathvik2004 dbname=goldfinancemanagement port=5432";
 
-    let conn_str = format!(
-        "host={} user={} password={} dbname={} port={}",
-        env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string()),
-        env::var("DB_USER").unwrap_or_else(|_| "postgres".to_string()),
-        env::var("DB_PASSWORD").unwrap_or_default(),
-        env::var("DB_DATABASE").unwrap_or_default(),
-        env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string()),
-    );
+    // let conn_str = format!(
+    //     "host={} user={} password={} dbname={} port={}",
+    //     env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string()),
+    //     env::var("DB_USER").unwrap_or_else(|_| "postgres".to_string()),
+    //     env::var("DB_PASSWORD").unwrap_or_default(),
+    //     env::var("DB_DATABASE").unwrap_or_default(),
+    //     env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string()),
+    // );
     
     let (client, connection) = tokio_postgres::connect(&conn_str, NoTls)
         .await
