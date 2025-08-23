@@ -7,7 +7,7 @@ import logo from "../assets/logo.png";
 import { UserCircleIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
+  
 function LoginPage({
   onLoginSuccess,
 }: {
