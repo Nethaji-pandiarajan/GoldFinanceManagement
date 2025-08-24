@@ -20,6 +20,7 @@ import clsx from "clsx";
 import OtpVerificationModal from "./OtpVerificationModal";
 import { BillPrintModal } from './BillPrintModal';
 import companyLogo from '../assets/blackmgflogo.png';
+import TotalOrnamentValue from './TotalOrnamentValue';
 const bufferToBase64 = (
   buffer: { type: string; data: number[] } | null | undefined
 ): string | null => {
@@ -51,6 +52,7 @@ interface LoanDetails {
   amount_issued: string;
   loan_application_uuid: string;
   scheme_id: string;
+  loan_to_value: string;
 }
 interface Scheme {
   scheme_id: number;
@@ -85,8 +87,7 @@ interface CustomerDisplayDetails {
   current_address: string;
 }
 interface CalculationData {
-  goldRates: { karat_name: string; today_rate: string }[];
-  karatLTVs: { karat_name: string; loan_to_value: string }[];
+  goldRates: { karat_name: string; today_rate: string; }[];
 }
 
 const initialLoanDetails = (id: string): LoanDetails => ({
@@ -100,7 +101,8 @@ const initialLoanDetails = (id: string): LoanDetails => ({
   eligible_amount: "0",
   amount_issued: "0",
   processing_fee: "100",
-  scheme_id: "", 
+  scheme_id : "",
+  loan_to_value: "75.00"
 });
 const initialOrnamentRow = (): OrnamentRow => ({
   key: Date.now(),
@@ -144,8 +146,7 @@ export default function NewLoanApplication() {
   const [currentAddress, setCurrentAddress] = useState("");
   const [usePermanentAddress, setUsePermanentAddress] = useState(false);
   const [calculationData, setCalculationData] = useState<CalculationData>({
-    goldRates: [],
-    karatLTVs: [],
+    goldRates: []
   });
   const [masterOrnamentList, setMasterOrnamentList] = useState<any[]>([]);
   const [karatTypes, setKaratTypes] = useState<any[]>([]);
@@ -166,7 +167,7 @@ export default function NewLoanApplication() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [nextIdRes, calcDataRes, custRes, ornRes , schemesRes] = await Promise.all([
+        const [nextIdRes, goldRatesRes, custRes, ornRes , schemesRes] = await Promise.all([
           api.get("/api/loans/next-id"),
           api.get("/api/loans/calculation-data"),
           api.get(`/api/customers-list`),
@@ -174,15 +175,11 @@ export default function NewLoanApplication() {
           api.get('/api/schemes/utils/list'),
         ]);
         setLoanDetails(initialLoanDetails(nextIdRes.data.next_id));
-        setCalculationData(calcDataRes.data);
+        setCalculationData({ goldRates: goldRatesRes.data.goldRates });
         setCustomers(custRes.data);
         setMasterOrnamentList(ornRes.data);
         setSchemes(schemesRes.data);
-        setKaratTypes(
-          calcDataRes.data.karatLTVs.map((k: any) => ({
-            karat_name: k.karat_name,
-          }))
-        );
+        setKaratTypes(goldRatesRes.data.goldRates.map((r: any) => ({ karat_name: r.karat_name })));
       } catch (error) {
         setAlert({
           show: true,
@@ -255,30 +252,28 @@ export default function NewLoanApplication() {
     setCurrentAddress(e.target.value);
     setUsePermanentAddress(false);
   };
+  const ornamentsWithValue = useMemo(() => {
+        return ornamentRows.map(ornament => {
+            if (!ornament.grams || !ornament.karat || isNaN(parseFloat(ornament.grams))) {
+                return { ornament_name: ornament.ornament_name, value: 0 };
+            }
+            
+            const rateInfo = calculationData.goldRates.find(r => r.karat_name === ornament.karat);
+            if (!rateInfo) {
+                return { ornament_name: ornament.ornament_name, value: 0 };
+            }
 
+            const value = parseFloat(ornament.grams) * parseFloat(rateInfo.today_rate);
+            return { ornament_name: ornament.ornament_name, value };
+        });
+    }, [ornamentRows, calculationData.goldRates]);
+  const totalOrnamentValue = useMemo(() => {
+        return ornamentsWithValue.reduce((total, orn) => total + orn.value, 0);
+    }, [ornamentsWithValue]);
   const calculatedEligibleAmount = useMemo(() => {
-    return ornamentRows.reduce((total, ornament) => {
-      if (
-        !ornament.grams ||
-        !ornament.karat ||
-        isNaN(parseFloat(ornament.grams))
-      )
-        return total;
-      const rateInfo = calculationData.goldRates.find(
-        (r) => r.karat_name === ornament.karat
-      );
-      const ltvInfo = calculationData.karatLTVs.find(
-        (k) => k.karat_name === ornament.karat
-      );
-      if (!rateInfo || !ltvInfo) return total;
-      return (
-        total +
-        parseFloat(ornament.grams) *
-          parseFloat(rateInfo.today_rate) *
-          (parseFloat(ltvInfo.loan_to_value) / 100)
-      );
-    }, 0);
-  }, [ornamentRows, calculationData]);
+    const currentLTV = parseFloat(loanDetails.loan_to_value) || 0;
+    return totalOrnamentValue * (currentLTV / 100);
+  }, [totalOrnamentValue, loanDetails.loan_to_value]);
 
   useEffect(() => {
     setLoanDetails((prev) => ({
@@ -360,6 +355,7 @@ export default function NewLoanApplication() {
   const validateForm = (): boolean => {
     const requiredLoanFields: (keyof LoanDetails)[] = [
       "customer_id",
+      "scheme_id", 
       "interest_rate",
       "loan_datetime",
       "due_date",
@@ -442,7 +438,7 @@ export default function NewLoanApplication() {
       };
       setLoanDataForPrint(completeLoanDataForPrint);
       setPrintModalOpen(true);
-      setAlert({ show: true, type: "success", message: `Loan #${newLoanId} created successfully!` });
+      // setAlert({ show: true, type: "success", message: `Loan #${newLoanId} created successfully!` });
 
     } catch (error) {
       setAlert({ show: true, type: "error", message: "Failed to create or print loan application." });
@@ -525,9 +521,6 @@ export default function NewLoanApplication() {
     const monthDiff = end.getMonth() - start.getMonth();
 
     let months = yearDiff * 12 + monthDiff;
-    if (months === 0){
-      return 1
-    }
     if (end.getDate() < start.getDate()) {
       months--;
     }
@@ -545,12 +538,12 @@ export default function NewLoanApplication() {
     return tenure <= 0 ? 1 : tenure;
   }, [loanDetails.loan_datetime, loanDetails.due_date]);
 
-  const monthlyPrincipal = useMemo(() => {
-    const netAmount =
-      parseFloat(loanDetails.amount_issued) -
-      parseFloat(loanDetails.processing_fee);
-    return totalMonths > 0 ? Math.max(0, netAmount) / totalMonths : 0;
-  }, [loanDetails.amount_issued, loanDetails.processing_fee, totalMonths]);
+  // const monthlyPrincipal = useMemo(() => {
+  //   const netAmount =
+  //     parseFloat(loanDetails.amount_issued) -
+  //     parseFloat(loanDetails.processing_fee);
+  //   return totalMonths > 0 ? Math.max(0, netAmount) / totalMonths : 0;
+  // }, [loanDetails.amount_issued, loanDetails.processing_fee, totalMonths]);
 
   const monthlyInterest = useMemo(() => {
     const netAmount =
@@ -590,6 +583,7 @@ export default function NewLoanApplication() {
           isOpen={isPrintModalOpen}
           loanData={loanDataForPrint}
           logo={companyLogo}
+          setAlert={setAlert}
           onClose={() => {
             setPrintModalOpen(false);
             resetFormForNewLoan();
@@ -672,6 +666,7 @@ export default function NewLoanApplication() {
                       value={loanDetails.scheme_id}
                       onChange={handleLoanChange}
                       className={inputStyle}
+                      required 
                     >
                         <option value="">Choose a scheme</option>
                         {schemes.map((scheme) => (
@@ -808,7 +803,7 @@ export default function NewLoanApplication() {
 
               <section>
                 <SectionHeader title="Ornament Details" />
-                <div className="space-y-4">
+                <div className="space-y-4 mb-6">
                   <div className="flex justify-end">
                     <button
                       type="button"
@@ -961,7 +956,7 @@ export default function NewLoanApplication() {
                               {ornament.image_preview ? (
                                 <>
                                   <CheckIcon className="h-5 w-5" />
-                                  <span>Selected</span>
+                                  <span>Uploaded</span>
                                 </>
                               ) : (
                                 <span>Select Image</span>
@@ -995,11 +990,13 @@ export default function NewLoanApplication() {
                     </div>
                   ))}
                 </div>
+                <div className="mb-6">
+                   <TotalOrnamentValue ornamentsWithValue={ornamentsWithValue} />
+                </div>
               </section>
-
               <section>
                 <SectionHeader title="Amount & Fee Details" />
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                   <div>
                     <label className={labelStyle}>Interest Rate (%)*</label>
                     <input
@@ -1011,6 +1008,19 @@ export default function NewLoanApplication() {
                       placeholder="e.g., 12.5"
                       step="0.01"
                       required
+                    />
+                  </div>
+                  <div>
+                    <label className={labelStyle}>Loan to Value (LTV %)*</label>
+                    <input 
+                        type="number" 
+                        name="loan_to_value" 
+                        value={loanDetails.loan_to_value} 
+                        onChange={handleLoanChange} 
+                        className={inputStyle} 
+                        placeholder="e.g., 75.00" 
+                        step="0.01" 
+                        required 
                     />
                   </div>
                   <div>
@@ -1049,12 +1059,12 @@ export default function NewLoanApplication() {
 
               <section>
                 <SectionHeader title="Monthly Calculation Summary" />
-                <div className="p-4 bg-black/20 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-x-9 gap-y-2">
+                <div className="p-4 bg-black/20 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-x-9 gap-y-2">
                   <CalcRow label="Total Months" value={totalMonths} />
-                  <CalcRow
+                  {/* <CalcRow
                     label="Principal / Month"
                     value={formatCurrency(monthlyPrincipal)}
-                  />
+                  /> */}
                   <CalcRow
                     label="Interest / Month"
                     value={formatCurrency(monthlyInterest)}

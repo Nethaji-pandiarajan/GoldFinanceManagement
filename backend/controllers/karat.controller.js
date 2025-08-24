@@ -5,7 +5,7 @@ exports.getAllKarats = async (req, res) => {
   logger.info(`[KARAT] Request received to GET all karats.`);
   try {
     const result = await db.query(
-      "SELECT karat_id, karat_name,  loan_to_value, description , purity FROM datamanagement.gold_karat_details ORDER BY created_on DESC"
+      "SELECT karat_id, karat_name, description , purity FROM datamanagement.gold_karat_details ORDER BY created_on DESC"
     );
     logger.info(`[KARAT] Successfully retrieved ${result.rows.length} karat details.`);
     res.json(result.rows);
@@ -16,10 +16,10 @@ exports.getAllKarats = async (req, res) => {
 };
 
 exports.createKarat = async (req, res) => {
-    const { karat_name,  loan_to_value, purity, description } = req.body; 
-    logger.info(`[KARAT] Attempting to CREATE new karat '${karat_name}' with  loan to value '${ loan_to_value}%' and purity '${purity}%'.`);
+    const { karat_name,   purity, description } = req.body; 
+    logger.info(`[KARAT] Attempting to CREATE new karat '${karat_name}' with   purity '${purity}%'.`);
 
-    if (!karat_name ||  loan_to_value === undefined || purity === undefined) {
+    if (!karat_name ||  purity === undefined) {
         logger.warn(`[KARAT] Validation failed for creating karat '${karat_name}': Missing required fields.`);
         return res.status(400).json({ message: "Karat name,  loan to value, and purity are required." });
     }
@@ -31,10 +31,10 @@ exports.createKarat = async (req, res) => {
             return res.status(409).json({ message: `A karat with the name '${karat_name}' already exists.` });
         }
         const query = `
-          INSERT INTO datamanagement.gold_karat_details (karat_name,  loan_to_value, description, purity)
-          VALUES ($1, $2, $3, $4);
+          INSERT INTO datamanagement.gold_karat_details (karat_name,  description, purity)
+          VALUES ($1, $2, $3);
         `;
-        await db.query(query, [karat_name,  loan_to_value, description || null, purity]);
+        await db.query(query, [karat_name,  description || null, purity]);
         
         logger.info(`[KARAT] Successfully CREATED karat '${karat_name}'.`);
         res.status(201).json({ message: "Gold karat detail created successfully!" });
@@ -50,25 +50,25 @@ exports.createKarat = async (req, res) => {
 
 exports.updateKaratById = async (req, res) => {
   const { id } = req.params;
-  const {  loan_to_value, description  , purity } = req.body;
+  const {  description  , purity } = req.body;
   const parsedId = parseInt(id, 10);
-  logger.info(`[KARAT] Attempting to UPDATE karat with ID '${id}' to name '${karat_name}' and percentage '${ loan_to_value}%'.`);
+  logger.info(`[KARAT] Attempting to UPDATE karat with ID '${id}'`);
   if (isNaN(parsedId)) {
     logger.warn(`[KARAT] Update failed: Invalid Karat ID provided: '${id}'.`);
     return res.status(400).json({ message: "Invalid karat ID." });
   }
-  if ( loan_to_value === undefined || purity === undefined) {
-      logger.warn(`[KARAT] Validation failed for updating karat ID '${id}': Missing  loan to value or purity.`);
-      return res.status(400).json({ message: " loan to value and purity are required." });
+  if (  purity === undefined) {
+      logger.warn(`[KARAT] Validation failed for updating karat ID '${id}': Missing purity.`);
+      return res.status(400).json({ message: " purity are required." });
   }
 
   try {
     const query = `
           UPDATE datamanagement.gold_karat_details SET
-             loan_to_value = $1, description = $2, purity = $3, updated_on = CURRENT_TIMESTAMP
-          WHERE karat_id = $4;
+            description = $1, purity = $2, updated_on = CURRENT_TIMESTAMP
+          WHERE karat_id = $3;
         `;
-    const result = await db.query(query, [ loan_to_value, description || null, purity, parsedId]);
+    const result = await db.query(query, [ description || null, purity, parsedId]);
 
     if (result.rowCount === 0) {
       logger.warn(`[KARAT] Failed to UPDATE karat: Karat with ID '${id}' not found.`);

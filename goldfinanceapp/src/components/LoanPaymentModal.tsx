@@ -9,10 +9,8 @@ type AlertState = {
 const paymentOptions = ["UPI", "Debit/Credit Card", "Cash", "Other"];
 
 interface PendingPayment {
-  principal_amount_due: string;
-  principal_amount_paid: string;
+  loan_balance: string;
   interest_amount_due: string;
-  interest_amount_paid: string;
   payment_month: string;
 }
 
@@ -51,10 +49,12 @@ export default function LoanPaymentModal({
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isFinalPayment, setIsFinalPayment] = useState(false);
-   useEffect(() => {
+  useEffect(() => {
     const initializeModal = async () => {
       try {
-        const response = await api.get(`/api/loans/${loan.loan_id}/next-payment`);
+        const response = await api.get(
+          `/api/loans/${loan.loan_id}/next-payment`
+        );
         setPendingPayment(response.data);
       } catch (error) {
         setPendingPayment(null);
@@ -93,19 +93,35 @@ export default function LoanPaymentModal({
     const interestToPay = parseFloat(formData.interest_payment) || 0;
 
     if (principalToPay <= 0 && interestToPay <= 0) {
-      setAlert({ show: true, type: "error", message: "Please enter a positive payment amount." });
+      setAlert({
+        show: true,
+        type: "error",
+        message: "Please enter a positive payment amount.",
+      });
       return;
     }
 
-    const principalDue = parseFloat(pendingPayment.principal_amount_due) - parseFloat(pendingPayment.principal_amount_paid);
-    const interestDue = parseFloat(pendingPayment.interest_amount_due) - parseFloat(pendingPayment.interest_amount_paid);
-    const tolerance = isFinalPayment ? 1.00 : 0.01;
+    const principalDue = parseFloat(pendingPayment.loan_balance);
+    const interestDue = parseFloat(pendingPayment.interest_amount_due);
+    const tolerance = isFinalPayment ? 1.0 : 0.01;
     if (principalToPay > principalDue + tolerance) {
-      setAlert({ show: true, type: "error", message: `Principal payment cannot exceed the due amount of ₹${principalDue.toFixed(2)}.` });
+      setAlert({
+        show: true,
+        type: "error",
+        message: `Principal payment cannot exceed the due amount of ₹${principalDue.toFixed(
+          2
+        )}.`,
+      });
       return;
     }
     if (interestToPay > interestDue) {
-      setAlert({ show: true, type: "error", message: `Interest payment cannot exceed the due amount of ₹${interestDue.toFixed(2)}.` });
+      setAlert({
+        show: true,
+        type: "error",
+        message: `Interest payment cannot exceed the due amount of ₹${interestDue.toFixed(
+          2
+        )}.`,
+      });
       return;
     }
 
@@ -233,22 +249,12 @@ export default function LoanPaymentModal({
                   })}
                 />
                 <InfoRow
-                  label="Principal Amount Due"
-                  value={formatCurrency(
-                    String(
-                      parseFloat(pendingPayment.principal_amount_due) -
-                        parseFloat(pendingPayment.principal_amount_paid)
-                    )
-                  )}
+                  label="Current Loan Balance"
+                  value={formatCurrency(pendingPayment.loan_balance)}
                 />
                 <InfoRow
-                  label="Interest Amount Due"
-                  value={formatCurrency(
-                    String(
-                      parseFloat(pendingPayment.interest_amount_due) -
-                        parseFloat(pendingPayment.interest_amount_paid)
-                    )
-                  )}
+                  label="Interest Due This Month"
+                  value={formatCurrency(pendingPayment.interest_amount_due)}
                 />
               </div>
 
@@ -317,7 +323,8 @@ export default function LoanPaymentModal({
                 {isFinalPayment && (
                   <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
                     <p className="text-sm font-semibold text-yellow-300">
-                      This payment will close the loan. An OTP will be sent for verification.
+                      This payment will close the loan. An OTP will be sent for
+                      verification.
                     </p>
                   </div>
                 )}
