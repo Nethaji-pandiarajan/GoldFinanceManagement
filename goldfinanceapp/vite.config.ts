@@ -22,6 +22,7 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
+      usePolling: true,
       ignored: ["**/src-tauri/**"],
     },
   },

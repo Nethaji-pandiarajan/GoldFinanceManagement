@@ -95,11 +95,6 @@ export default function GoldKaratDetails() {
     },
     { title: "Karat Name", data: "karat_name" },
     {
-      title: "Loan to Value (LTV)",
-      data: "loan_to_value",
-      render: (data: string) => `${parseFloat(data).toFixed(2)}%`,
-    },
-    {
       title: "Purity",
       data: "purity",
       render: (data: string) => data ? `${parseFloat(data).toFixed(2)}%` : 'N/A',
@@ -200,7 +195,6 @@ export default function GoldKaratDetails() {
             <tr>
               <th>S.No.</th>
               <th>Karat Name</th>
-              <th>Loan to Value (LTV)</th>
               <th>Purity</th>
               <th>Description</th>
               <th>Actions</th>

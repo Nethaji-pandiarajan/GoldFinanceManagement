@@ -14,7 +14,6 @@ type AddGoldKaratFormProps = {
 
 export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess, setAlert  , availableOptions}: AddGoldKaratFormProps) {
   const [formData, setFormData] = useState({
-    loan_to_value: "",
     description: "",
     purity: "",
   });
@@ -24,7 +23,6 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setFormData({
-        loan_to_value: initialData.loan_to_value || "",
         description: initialData.description || "",
         purity: initialData.purity || "",
       });
@@ -151,31 +149,16 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
               </div>
             )}
             <div>
-              <label className={labelStyle}>Loan to Value (LTV) (%)*</label>
-              <input 
-                type="number" 
-                name="loan_to_value" 
-                value={formData.loan_to_value} 
-                onChange={handleChange} 
-                className={inputStyle} 
-                required 
-                placeholder="e.g., 75.50" 
-                step="0.01" 
-              />
-            </div>
-
-            <div>
               <label className={labelStyle}>Purity (%)*</label>
               <input
                 type="number"
                 name="purity"
                 value={formData.purity}
                 onChange={handleChange}
-                className={`${inputStyle} ${selectedKarat !== 'Others' && mode === 'add' ? disabledInputStyle : ''}`} // Make it read-only if not 'Others' in add mode
-                required
+                className={`${inputStyle} ${selectedKarat !== 'Others' && mode === 'add' ? disabledInputStyle : ''}`}
                 placeholder={selectedKarat !== 'Others' && mode === 'add' ? 'Auto-calculated' : 'e.g., 91.60'}
                 step="0.01"
-                readOnly={selectedKarat !== 'Others' && mode === 'add'} // Enforce read-only
+                readOnly={selectedKarat !== 'Others' && mode === 'add'}
               />
             </div>
 

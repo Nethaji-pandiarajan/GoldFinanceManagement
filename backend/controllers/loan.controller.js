@@ -14,14 +14,10 @@ exports.getNextLoanId = async (req, res) => {
 exports.getCalculationData = async (req, res) => {
     logger.info(`[LOAN] Request received to GET data for loan calculations.`);
     try {
-        const [karatRatesRes, karatsLTVRes] = await Promise.all([
-            db.query('SELECT karat_name, today_rate FROM datamanagement.gold_rate'),
-            db.query('SELECT karat_name, loan_to_value FROM datamanagement.gold_karat_details')
-        ]);
+        const karatRatesRes = await db.query('SELECT karat_name, today_rate FROM datamanagement.gold_rate');
         
         const responseData = {
             goldRates: karatRatesRes.rows,
-            karatLTVs: karatsLTVRes.rows
         };
         res.json(responseData);
     } catch (error) {
@@ -62,6 +58,14 @@ exports.createLoan = async (req, res) => {
     const createdByUserId = req.user.id; 
     const loanDetails = JSON.parse(req.body.loanDetails);
     const { current_address } = loanDetails;
+    if (!loanDetails.customer_id) {
+        logger.warn(`[LOAN] Create loan failed: Missing customer_id.`);
+        return res.status(400).json({ message: "A customer must be selected." });
+    }
+    if (!loanDetails.scheme_id) {
+        logger.warn(`[LOAN] Create loan failed: Missing scheme_id.`);
+        return res.status(400).json({ message: "A scheme must be selected." });
+    }
     logger.info(`[LOAN] Attempting to CREATE new loan for customer_id '${loanDetails.customer_id}'.`);
     const client = await db.pool.connect();
     try {
@@ -81,13 +85,14 @@ exports.createLoan = async (req, res) => {
         }
         const netAmountIssued = parseFloat(loanDetails.amount_issued) - parseFloat(loanDetails.processing_fee);
         const loanQuery = `
-          INSERT INTO datamanagement.loan_details (loan_id, customer_id, interest_rate, due_date, loan_datetime, eligible_amount, amount_issued, loan_application_uuid, processing_fee,  net_amount_issued)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING loan_id;
+          INSERT INTO datamanagement.loan_details (loan_id, customer_id, interest_rate, current_interest_rate, due_date, loan_datetime, eligible_amount, amount_issued, loan_application_uuid, processing_fee,  net_amount_issued ,scheme_id, loan_to_value )
+          VALUES ($1, $2, $3, $3 , $4, $5, $6, $7, $8, $9, $10 , $11, $12) RETURNING loan_id;
         `;
         const loanResult = await client.query(loanQuery, [
             loanDetails.loan_id, loanDetails.customer_id, loanDetails.interest_rate, loanDetails.due_date,
             loanDetails.loan_datetime, loanDetails.eligible_amount, loanDetails.amount_issued, 
-            loanDetails.loan_application_uuid, loanDetails.processing_fee,netAmountIssued
+            loanDetails.loan_application_uuid, loanDetails.processing_fee,netAmountIssued, 
+            loanDetails.scheme_id, loanDetails.loan_to_value
         ]);
         const newLoanId = loanResult.rows[0].loan_id;
         logger.info(`[LOAN] Intermediate step: Created loan detail with DB loan_id: ${newLoanId}.`);
@@ -124,19 +129,20 @@ exports.createLoan = async (req, res) => {
         if (totalMonths === 0) {
             return res.status(400).json({ message: "Loan duration cannot be zero days." });
         }
-        const monthlyPrincipal = parseFloat(netAmountIssued) / totalMonths;
         const monthlyInterest = (netAmountIssued * (parseFloat(loanDetails.interest_rate) / 100)) / 12;
 
-        for (const paymentMonth of installments) {
+        for (let i = 0; i < installments.length; i++) {
+            const paymentMonth = installments[i];
+            const currentBalance = (i === 0) ? netAmountIssued : 0;
             const paymentQuery = `
-            INSERT INTO datamanagement.loan_payments 
-            (loan_id, payment_month, principal_amount_due, interest_amount_due)
-            VALUES ($1, $2, $3, $4);
+              INSERT INTO datamanagement.loan_payments 
+              (loan_id, payment_month, loan_balance, interest_amount_due, payment_status, remarks , is_active)
+              VALUES ($1, $2, $3, $4, 'Pending', 'Monthly Installment', TRUE);
             `;
             await client.query(paymentQuery, [
                 newLoanId, 
                 paymentMonth.toISOString().split("T")[0], 
-                monthlyPrincipal.toFixed(2),
+                currentBalance.toFixed(2),
                 monthlyInterest.toFixed(2)
             ]);
         }
@@ -193,7 +199,14 @@ exports.getLoanById = async (req, res) => {
             return res.status(404).json({ message: "Loan not found." });
         }
         const loanData = loanResult.rows[0];
-        const paymentsQuery = `SELECT * FROM datamanagement.loan_payments WHERE loan_id = $1 ORDER BY payment_month ASC;`;
+        const paymentsQuery = `
+            SELECT * FROM datamanagement.loan_payments 
+            WHERE 
+                loan_id = $1 
+                AND DATE_TRUNC('month', payment_month) <= DATE_TRUNC('month', CURRENT_DATE + INTERVAL '1 month') 
+            ORDER BY 
+                payment_month ASC;
+        `;
         const paymentsResult = await db.query(paymentsQuery, [parsedId]);
         loanData.payments = paymentsResult.rows;
         const ornamentsQuery = `SELECT * FROM datamanagement.loan_ornament_details WHERE loan_id = $1;`;
@@ -230,89 +243,93 @@ exports.deleteLoanById = async (req, res) => {
     }
 };
 
+
+
 exports.recordPayment = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; 
     const { principal_payment, interest_payment, payment_mode, remarks } = req.body;
+    
     logger.info(`[LOAN] Attempting to RECORD PAYMENT for loan ID '${id}'. Principal: ${principal_payment}, Interest: ${interest_payment}.`);
 
     const parsedLoanId = parseInt(id, 10);
-    let principalToApply = parseFloat(principal_payment) || 0;
-    let interestToApply = parseFloat(interest_payment) || 0;
+    const principalPaid = parseFloat(principal_payment) || 0;
+    const interestPaid = parseFloat(interest_payment) || 0;
 
-    if (isNaN(parsedLoanId) || (principalToApply <= 0 && interestToApply <= 0)) {
+    if (isNaN(parsedLoanId) || (principalPaid <= 0 && interestPaid <= 0)) {
         return res.status(400).json({ message: "Valid Loan ID and a positive payment amount are required." });
     }
 
     const client = await db.pool.connect();
     try {
         await client.query("BEGIN");
-        const installmentsRes = await client.query(
+        const allPendingInstallmentsRes = await client.query(
             `SELECT * FROM datamanagement.loan_payments 
-             WHERE loan_id = $1 AND payment_status != 'Paid' 
+             WHERE loan_id = $1 AND payment_status = 'Pending'  AND is_active = TRUE
              ORDER BY payment_month ASC`,
             [parsedLoanId]
         );
-        const installments = installmentsRes.rows;
+        const allPendingInstallments = allPendingInstallmentsRes.rows;
 
-        if (installments.length === 0) {
-            logger.warn(`[LOAN] No unpaid installments found for loan ID '${id}' to apply payment.`);
+        if (allPendingInstallments.length === 0) {
             await client.query("ROLLBACK");
             return res.status(404).json({ message: "No pending payments found for this loan." });
         }
-
-        let totalPrincipalPaidInTx = 0;
-        for (const installment of installments) {
-            if (principalToApply <= 0 && interestToApply <= 0) break; 
-
-            const principalDue = parseFloat(installment.principal_amount_due) - parseFloat(installment.principal_amount_paid);
-            const interestDue = parseFloat(installment.interest_amount_due) - parseFloat(installment.interest_amount_paid);
-
-            const principalPaidThisTime = Math.min(principalToApply, principalDue);
-            const interestPaidThisTime = Math.min(interestToApply, interestDue);
-            
-            totalPrincipalPaidInTx += principalPaidThisTime;
-
-            if (principalPaidThisTime > 0 || interestPaidThisTime > 0) {
-                await client.query(
-                    `UPDATE datamanagement.loan_payments SET
-                       principal_amount_paid = principal_amount_paid + $1,
-                       interest_amount_paid = interest_amount_paid + $2,
-                       payment_status = CASE 
-                                        WHEN (principal_amount_due - (principal_amount_paid + $1)) <= 0.01 AND (interest_amount_due - (interest_amount_paid + $2)) <= 0.01
-                                        THEN 'Paid' 
-                                        ELSE 'Partial' 
-                                      END,
-                       payment_mode = $3, 
-                       remarks = $4, 
-                       payment_date = CURRENT_TIMESTAMP, 
-                       updated_on = CURRENT_TIMESTAMP
-                     WHERE payment_id = $5;`,
-                    [principalPaidThisTime.toFixed(2), interestPaidThisTime.toFixed(2), payment_mode, remarks, installment.payment_id]
-                );
-            }
-
-            principalToApply -= principalPaidThisTime;
-            interestToApply -= interestPaidThisTime;
-        }
-        if (totalPrincipalPaidInTx > 0) {
-            await client.query(
-                `UPDATE datamanagement.loan_details SET principal_amount_paid = principal_amount_paid + $1, updated_on = CURRENT_TIMESTAMP WHERE loan_id = $2;`,
-                [totalPrincipalPaidInTx.toFixed(2), parsedLoanId]
-            );
-        }
-        const finalStatusCheck = await client.query(
-            `SELECT ld.net_amount_issued, ld.principal_amount_paid, 
-                    (SELECT COUNT(*) FROM datamanagement.loan_payments WHERE loan_id = $1 AND payment_status != 'Paid') as pending_installments
-             FROM datamanagement.loan_details ld WHERE ld.loan_id = $1`,
-            [parsedLoanId]
+        
+        const currentInstallment = allPendingInstallments[0];
+        const isLastInstallment = allPendingInstallments.length === 1;
+        
+        const currentBalance = parseFloat(currentInstallment.loan_balance);
+        const interestDueThisMonth = parseFloat(currentInstallment.interest_amount_due);
+        await client.query(
+            `UPDATE datamanagement.loan_payments
+             SET principal_amount_paid = $1, interest_amount_paid = $2,
+                 payment_status = 'Paid', payment_mode = $3, remarks = $4, payment_date = CURRENT_TIMESTAMP
+             WHERE payment_id = $5;`,
+            [principalPaid, interestPaid, payment_mode, remarks, currentInstallment.payment_id]
         );
 
-        const isPrincipalFullyPaid = parseFloat(finalStatusCheck.rows[0].principal_amount_paid) >= parseFloat(finalStatusCheck.rows[0].net_amount_issued);
-        const hasNoPendingInstallments = parseInt(finalStatusCheck.rows[0].pending_installments, 10) === 0;
+        await client.query(
+            `UPDATE datamanagement.loan_details 
+             SET principal_amount_paid = principal_amount_paid + $1
+             WHERE loan_id = $2;`,
+            [principalPaid, parsedLoanId]
+        );
 
-        if (isPrincipalFullyPaid && hasNoPendingInstallments) {
-            await client.query( "UPDATE datamanagement.loan_details SET completion_status = 'Completed' WHERE loan_id = $1", [parsedLoanId] );
-            logger.info(`[LOAN] Loan ID '${id}' status changed to 'Completed' after final payment.`);
+        const newBalance = currentBalance - principalPaid;
+        logger.info(`[LOAN] New balance for Loan ID '${id}' is ${newBalance.toFixed(2)}.`);
+
+        if (newBalance <= 0.01 && interestPaid >= interestDueThisMonth) {
+            logger.info(`[LOAN] Early closure for Loan ID '${id}'.`);
+            await client.query(`DELETE FROM datamanagement.loan_payments WHERE loan_id = $1 AND payment_status = 'Pending'  AND is_active = TRUE;`, [parsedLoanId]);
+            await client.query(`UPDATE datamanagement.loan_details SET completion_status = 'Completed' WHERE loan_id = $1`, [parsedLoanId]);
+
+        } else if (isLastInstallment && newBalance > 0.01) {
+            logger.info(`[LOAN] Extending loan for Loan ID '${id}' with remaining balance ${newBalance.toFixed(2)}.`);
+            const loanDetailsRes = await client.query(`SELECT current_interest_rate FROM datamanagement.loan_details WHERE loan_id = $1`, [parsedLoanId]);
+            const currentRate = parseFloat(loanDetailsRes.rows[0].current_interest_rate);
+            const newMonthlyInterest = (newBalance * (currentRate / 100)) / 12;
+            
+            const nextMonth = new Date(currentInstallment.payment_month);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+            await client.query(
+                `INSERT INTO datamanagement.loan_payments
+                 (loan_id, payment_month, loan_balance, interest_amount_due, payment_status, remarks , is_active)
+                 VALUES ($1, $2, $3, $4, 'Pending', 'Extended Installment', TRUE);`,
+                [parsedLoanId, nextMonth.toISOString().split('T')[0], newBalance.toFixed(2), newMonthlyInterest.toFixed(2)]
+            );
+            await client.query(`UPDATE datamanagement.loan_details SET due_date = $1 WHERE loan_id = $2`, [nextMonth.toISOString().split('T')[0], parsedLoanId]);
+            logger.info(`[LOAN] Created new installment for Loan ID '${id}'.`);
+
+        } else if (newBalance > 0.01) {
+            const nextInstallment = allPendingInstallments[1];
+            if (nextInstallment) {
+                await client.query(
+                    `UPDATE datamanagement.loan_payments SET loan_balance = $1 WHERE payment_id = $2 AND is_active= TRUE;`,
+                    [newBalance.toFixed(2), nextInstallment.payment_id]
+                );
+                logger.info(`[LOAN] Rolled over balance to next installment #${nextInstallment.payment_id}.`);
+            }
         }
         
         await client.query("COMMIT");
@@ -320,7 +337,7 @@ exports.recordPayment = async (req, res) => {
 
     } catch (error) {
         await client.query("ROLLBACK");
-        logger.error(`[LOAN] Error RECORDING PAYMENT for loan ID '${id}': ${error.message}`, { stack: error.stack });
+        logger.error(`[LOAN] Error RECORDING PAYMENT for Loan ID '${id}': ${error.message}`, { stack: error.stack });
         res.status(500).json({ message: "Server error while recording payment." });
     } finally {
         client.release();
@@ -341,17 +358,19 @@ exports.getPendingLoans = async (req, res) => {
             ld.due_date,
             -- Columns from our LATERAL JOIN
             next_payment.payment_month as next_payment_month,
-            (next_payment.principal_amount_due - next_payment.principal_amount_paid) as principal_due,
-            (next_payment.interest_amount_due - next_payment.interest_amount_paid) as interest_due
+            -- FIX: Use the new 'loan_balance' column for the principal due
+            next_payment.loan_balance as principal_due,
+            -- FIX: The interest_amount_due is the full amount, no need to subtract
+            next_payment.interest_amount_due as interest_due
           FROM 
             datamanagement.loan_details ld
           JOIN 
             datamanagement.customers c ON ld.customer_id = c.customer_id
-          -- Use a LATERAL JOIN to get the next pending payment for each loan
+          -- Use a LATERAL JOIN to get the next ACTIVE pending payment
           JOIN LATERAL (
               SELECT *
               FROM datamanagement.loan_payments lp
-              WHERE lp.loan_id = ld.loan_id AND lp.payment_status != 'Paid'
+              WHERE lp.loan_id = ld.loan_id AND lp.payment_status = 'Pending' AND lp.is_active = TRUE
               ORDER BY lp.payment_month ASC
               LIMIT 1
           ) AS next_payment ON TRUE
@@ -406,7 +425,7 @@ exports.getNextPaymentDue = async (req, res) => {
     try {
         const query = `
             SELECT 
-                principal_amount_due, 
+                loan_balance, 
                 principal_amount_paid,
                 interest_amount_due,
                 interest_amount_paid,
@@ -414,7 +433,7 @@ exports.getNextPaymentDue = async (req, res) => {
             FROM 
                 datamanagement.loan_payments
             WHERE 
-                loan_id = $1 AND payment_status != 'Paid'
+                loan_id = $1 AND payment_status != 'Paid' AND is_active = TRUE
             ORDER BY 
                 payment_month ASC
             LIMIT 1;

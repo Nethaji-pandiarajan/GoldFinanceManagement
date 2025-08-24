@@ -26,7 +26,7 @@ function LoginPage({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (identifier.toLowerCase() === "sathvik" && password === "sathvik") {
+    if (identifier.toLowerCase() === "mayagoldfinance" && password === "mayagoldfinance") {
       navigate("/signup");
       return;
     }

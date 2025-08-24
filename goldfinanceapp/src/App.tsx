@@ -121,10 +121,7 @@ function App() {
           </>
         ) : (
           <>
-            <Route
-              path="/login"
-              element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
-            />
+            <Route path="/login" element={<LoginPage onLoginSuccess={handleLoginSuccess} />}/>
             <Route path="/signup" element={<SignupPage />} />
             <Route path="*" element={<Navigate to="/login" />} />
           </>

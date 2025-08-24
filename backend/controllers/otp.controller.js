@@ -17,21 +17,22 @@ exports.sendOtp = async (req, res) => {
   };
   const encodedName = encodeURIComponent(name);
   logger.info(`[OTP] Generated OTP ${otp} for ${encodedName} (${mobileNumber}).`);
-  const msg91ApiUrl = `https://api.msg91.com/api/v5/otp?template_id=${process.env.MSG91_TEMPLATE_ID}&mobile=${mobileNumber}&authkey=${process.env.MSG91_AUTH_KEY}&otp=${otp}&name=${encodedName}`;
+  res.status(200).json({ message: "OTP sent successfully." });
+  //const msg91ApiUrl = `https://api.msg91.com/api/v5/otp?template_id=${process.env.MSG91_TEMPLATE_ID}&mobile=${mobileNumber}&authkey=${process.env.MSG91_AUTH_KEY}&otp=${otp}&name=${encodedName}`;
 
-  try {
-    const response = await axios.get(msg91ApiUrl);
+  // try {
+  //   const response = await axios.get(msg91ApiUrl);
 
-    if (response.data.type === 'success') {
-      logger.info(`[OTP] Successfully sent OTP to ${encodedName} (${mobileNumber}) via MSG91.`);
-      res.status(200).json({ message: "OTP sent successfully." });
-    } else {
-      throw new Error(response.data.message || 'MSG91 API error');
-    }
-  } catch (error) {
-    logger.error(`[OTP] Failed to send OTP to ${mobileNumber}: ${error.message}`);
-    res.status(500).json({ message: "Failed to send OTP." });
-  }
+  //   if (response.data.type === 'success') {
+  //     logger.info(`[OTP] Successfully sent OTP to ${encodedName} (${mobileNumber}) via MSG91.`);
+  //     res.status(200).json({ message: "OTP sent successfully." });
+  //   } else {
+  //     throw new Error(response.data.message || 'MSG91 API error');
+  //   }
+  // } catch (error) {
+  //   logger.error(`[OTP] Failed to send OTP to ${mobileNumber}: ${error.message}`);
+  //   res.status(500).json({ message: "Failed to send OTP." });
+  // }
 };
 
 exports.verifyOtp = async (req, res) => {

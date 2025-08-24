@@ -6,7 +6,6 @@ import jsPDF from "jspdf";
 import { toPng } from 'html-to-image';
 import { save } from "@tauri-apps/api/dialog";
 import { writeBinaryFile } from "@tauri-apps/api/fs";
-import AlertNotification from "../components/AlertNotification";
 
 interface Ornament {
   ornament_name: string;
@@ -55,6 +54,7 @@ interface BillPrintModalProps {
   onClose: () => void;
   loanData: LoanDataForBill;
   logo: string;
+  setAlert: (alert: any) => void;
 }
 
 const bufferToBase64 = (
@@ -206,10 +206,9 @@ const BillPage: React.FC<BillPageProps> = ({ loanData, copyType, logo }) => {
 };
 
 export const BillPrintModal: React.FC<BillPrintModalProps> = ({
-  isOpen, onClose, loanData, logo,
+  isOpen, onClose, loanData, logo, setAlert
 }) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [alert, setAlert] = useState<any>(null);
   const [view, setView] = useState<'customer' | 'office'>('customer');
   const handleSavePdf = async () => {
     setIsSaving(true);
@@ -244,6 +243,7 @@ export const BillPrintModal: React.FC<BillPrintModalProps> = ({
         if (view === 'customer') {
           setView('office');
         } else {
+          setAlert({ show: true, type: "success", message: `Loan #${loanData.loan_id} created and saved successfully!` });
           onClose();
         }
       } else {
@@ -262,9 +262,6 @@ export const BillPrintModal: React.FC<BillPrintModalProps> = ({
   };
   return (
     <>
-      {alert?.show && (
-        <AlertNotification {...alert} onClose={() => setAlert(null)} />
-      )}
       <Transition appear show={isOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={() => {
         setView('customer');
