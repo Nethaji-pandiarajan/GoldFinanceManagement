@@ -71,7 +71,7 @@ export default function ViewLoanModal({
                 <div className="mt-4 max-h-[75vh] overflow-y-auto pr-2 space-y-6">
                   <section>
                     <SectionHeader title="Loan Summary" />
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <DetailItem
                         label="Net Principal Amount"
                         value={formatCurrency(loanData.net_amount_issued)}
@@ -181,7 +181,7 @@ export default function ViewLoanModal({
                         <thead className="text-gray-400">
                           <tr>
                             <th className="p-2">Month</th>
-                            <th className="p-2">Principal Due</th>
+                            <th className="p-2">Principal Balance</th>
                             <th className="p-2">Principal Paid</th>
                             <th className="p-2">Interest Due</th>
                             <th className="p-2">Interest Paid</th>

@@ -83,7 +83,7 @@ exports.createLoan = async (req, res) => {
             );
             logger.info(`[CUSTOMER] Updated current_address for customer_id '${loanDetails.customer_id}'.`);
         }
-        const netAmountIssued = parseFloat(loanDetails.amount_issued) - parseFloat(loanDetails.processing_fee);
+        const netAmountIssued = parseFloat(loanDetails.amount_issued);
         const loanQuery = `
           INSERT INTO datamanagement.loan_details (loan_id, customer_id, interest_rate, current_interest_rate, due_date, loan_datetime, eligible_amount, amount_issued, loan_application_uuid, processing_fee,  net_amount_issued ,scheme_id, loan_to_value )
           VALUES ($1, $2, $3, $3 , $4, $5, $6, $7, $8, $9, $10 , $11, $12) RETURNING loan_id;
@@ -102,50 +102,40 @@ exports.createLoan = async (req, res) => {
             const file = files.find((f) => f.fieldname === `ornament_image_${i}`);
             const ornamentQuery = `
               INSERT INTO datamanagement.loan_ornament_details 
-              (ornament_id, ornament_type, ornament_name, grams, karat, ornament_image, loan_id, material_type)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+              (ornament_id, ornament_type, ornament_name, grams, -- Keep the original grams column
+               quantity, gross_weight, stone_weight, net_weight, 
+               karat, ornament_image, loan_id, material_type)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
             `;
             await client.query(ornamentQuery, [
                 ornament.ornament_id, ornament.ornament_type, ornament.ornament_name,
-                ornament.grams, ornament.karat, file ? file.buffer : null, newLoanId,ornament.material_type
+                ornament.grams,
+                ornament.quantity, ornament.gross_weight, ornament.stone_weight, ornament.net_weight,
+                ornament.karat, file ? file.buffer : null, newLoanId, ornament.material_type
             ]);
         }
         const startDate = new Date(loanDetails.loan_datetime);
-        const endDate = new Date(loanDetails.due_date);
-        let installments = [];
-        let currentMonth = new Date(startDate);
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-
-        while (currentMonth <= endDate) {
-            installments.push(new Date(currentMonth));
-            currentMonth.setMonth(currentMonth.getMonth() + 1);
+        const principalAmount = parseFloat(loanDetails.amount_issued);
+        const annualRate = parseFloat(loanDetails.interest_rate);
+        const firstPaymentDate = new Date(startDate);
+        firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1);
+        let interestForFirstInstallment = 0;
+        if (principalAmount > 0 && annualRate > 0) {
+            const perdayInterestAmount = (principalAmount * (annualRate / 100)) / 365;
+            interestForFirstInstallment = perdayInterestAmount * 15 ;
         }
-        if (installments.length === 0 && endDate > startDate) {
-            installments.push(new Date(endDate));
-        }
-
-        const totalMonths = installments.length;
-
-        if (totalMonths === 0) {
-            return res.status(400).json({ message: "Loan duration cannot be zero days." });
-        }
-        const monthlyInterest = (netAmountIssued * (parseFloat(loanDetails.interest_rate) / 100)) / 12;
-
-        for (let i = 0; i < installments.length; i++) {
-            const paymentMonth = installments[i];
-            const currentBalance = (i === 0) ? netAmountIssued : 0;
-            const paymentQuery = `
-              INSERT INTO datamanagement.loan_payments 
-              (loan_id, payment_month, loan_balance, interest_amount_due, payment_status, remarks , is_active)
-              VALUES ($1, $2, $3, $4, 'Pending', 'Monthly Installment', TRUE);
-            `;
-            await client.query(paymentQuery, [
-                newLoanId, 
-                paymentMonth.toISOString().split("T")[0], 
-                currentBalance.toFixed(2),
-                monthlyInterest.toFixed(2)
-            ]);
-        }
+        logger.info(`[LOAN] Creating first installment with special 15-day interest: ${interestForFirstInstallment.toFixed(2)}`);
+        const paymentQuery = `
+          INSERT INTO datamanagement.loan_payments 
+          (loan_id, payment_month, loan_balance, interest_amount_due, payment_status, remarks, is_active)
+          VALUES ($1, $2, $3, $4, 'Pending', 'First Installment', TRUE);
+        `;
+        await client.query(paymentQuery, [
+            newLoanId, 
+            firstPaymentDate.toISOString().split("T")[0], 
+            principalAmount.toFixed(2),
+            interestForFirstInstallment.toFixed(2)
+        ]);
         if (parseFloat(loanDetails.processing_fee) > 0) {
             const processingFeeLogQuery = `
                 INSERT INTO datamanagement.processed_amounts 

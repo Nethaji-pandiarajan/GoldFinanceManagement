@@ -267,6 +267,12 @@ export default function LoanPaymentModal({
                     type="number"
                     name="principal_payment"
                     value={formData.principal_payment}
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                        e.preventDefault();
+                      }
+                    }}
                     onChange={handleChange}
                     className={inputStyle}
                     placeholder="0.00"
@@ -285,6 +291,12 @@ export default function LoanPaymentModal({
                     className={inputStyle}
                     placeholder="0.00"
                     step="0.01"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
                 <div>

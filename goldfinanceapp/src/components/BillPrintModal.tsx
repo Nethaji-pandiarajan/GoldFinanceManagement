@@ -12,6 +12,10 @@ interface Ornament {
   material_type: string;
   grams: string;
   karat: string;
+  quantity: string;
+  gross_weight: string;
+  stone_weight: string;
+  net_weight: string;
   image_preview: string | null;
 }
 interface Slab {
@@ -77,8 +81,8 @@ const formatCurrency = (value: string | number) => {
   })}`;
 };
 
-const DetailRow: React.FC<{ label: string; tamilLabel: string; value: any }> = ({ label, tamilLabel, value }) => (
-  <div className="py-1">
+const DetailRow: React.FC<{ label: string; tamilLabel: string; value: any ,  isFullWidth?: boolean }> = ({ label, tamilLabel, value,isFullWidth }) => (
+  <div className={`py-1 ${isFullWidth ? 'col-span-2' : ''}`}>
     <p className="text-xs text-gray-600 font-semibold">{label} / {tamilLabel}</p>
     <p className="text-sm font-medium text-black">{value || '---'}</p>
   </div>
@@ -86,16 +90,14 @@ const DetailRow: React.FC<{ label: string; tamilLabel: string; value: any }> = (
 
 const BillPage: React.FC<BillPageProps> = ({ loanData, copyType, logo }) => {
   const customerImageUrl = bufferToBase64(loanData.customer_image);
-  const loanDay = new Date(loanData.loan_datetime).getDate();
-
   return (
     <div className="bg-white text-black p-6 font-sans w-[210mm] min-h-[297mm] flex flex-col shadow-lg">
       <header className="flex items-center justify-between pb-2">
-        <img src={logo} alt="Maaya Gold Finance Logo" className="h-16 w-16" />
+        <img src={logo} alt="Maya Gold Finance Logo" className="h-16 w-16" />
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-black">Maaya Gold Finance</h1>
-          <p className="text-sm text-gray-600">123, Main Bazaar, R.S. Puram, Coimbatore - 641002</p>
-          <p className="text-sm text-gray-600">Phone: 9876543210, 9123456789</p>
+          <h1 className="text-3xl font-bold text-black">Maya Gold Finance</h1>
+          <p className="text-sm text-gray-600">AS Complex ,Usilai ,Viruveedu - 624220</p>
+          <p className="text-sm text-gray-600">Phone: 04543295703</p>
         </div>
         <div className="h-16 w-16"></div>
       </header>
@@ -124,55 +126,50 @@ const BillPage: React.FC<BillPageProps> = ({ loanData, copyType, logo }) => {
           <DetailRow label="Address" tamilLabel="முகவரி" value={loanData.current_address || loanData.address} />
         </div>
       </section>
-      {loanData.scheme && (
-        <section className="my-4">
-            <h3 className="text-lg font-bold border-b border-gray-400 pb-1 mb-2">
-              Scheme Details / திட்ட விவரங்கள்: {loanData.scheme.scheme_name}
-            </h3>
-            <table className="w-full text-left text-sm">
-                <thead className="bg-gray-200 uppercase">
-                    <tr>
-                        <th className="p-2">Days Range</th>
-                        <th className="p-2">Interest Rate</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-300">
-                  {loanData.scheme.slabs.map((slab: Slab, index: number) => (
-                    <tr key={index}>
-                        <td className="p-2 font-medium">Day {slab.start_day} to Day {slab.end_day}</td>
-                        <td className="p-2">{parseFloat(slab.interest_rate).toFixed(2)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-            </table>
-        </section>
-      )}
       <section className="my-4">
         <h3 className="text-lg font-bold border-b border-gray-400 pb-1 mb-2">Pledged Ornaments / அடகு வைக்கப்பட்ட ஆபரணங்கள்</h3>
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-200 uppercase">
             <tr>
-              <th className="p-2">Ornament Name</th>
-              <th className="p-2">Material</th>
-              <th className="p-2">Weight (grams)</th>
+              <th className="p-2">Name</th>
+              <th className="p-2">Qty</th>
+              <th className="p-2">Gross Wt.</th>
+              <th className="p-2">Stone Wt.</th>
+              <th className="p-2">Net Wt.</th>
               <th className="p-2">Karat</th>
-              <th className="p-2">Image</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300">
             {loanData.ornaments.map((orn: Ornament, index: number) => (
               <tr key={index}>
                 <td className="p-2 font-medium">{orn.ornament_name}</td>
-                <td className="p-2">{orn.material_type}</td>
-                <td className="p-2">{parseFloat(orn.grams).toFixed(2)}g</td>
+                <td className="p-2">{orn.quantity}</td>
+                <td className="p-2">{parseFloat(orn.gross_weight).toFixed(2)}g</td>
+                <td className="p-2">{parseFloat(orn.stone_weight).toFixed(2)}g</td>
+                <td className="p-2 font-bold">{parseFloat(orn.net_weight).toFixed(2)}g</td>
                 <td className="p-2">{orn.karat}</td>
-                <td className="p-2">
-                  {orn.image_preview && <img src={orn.image_preview} alt="Ornament" className="h-10 w-10 object-cover rounded" />}
-                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </section>
+      <section className="my-4">
+    <div className="text-sm font-bold mb-2">
+        Scheme Details / திட்ட விவரங்கள்: {loanData.scheme?.scheme_name || 'N/A'}
+    </div>
+    {loanData.scheme && loanData.scheme.slabs.length > 0 ? (
+        <div className="text-sm text-black space-y-1">
+            {loanData.scheme.slabs.map((slab, index) => (
+                <div key={index}>
+                    <span className="font-semibold inline-block w-20">Slab {index + 1}:</span>
+                    <span className="inline-block w-40 text-center">{slab.start_day} - {slab.end_day} days</span>
+                    <span className="font-bold inline-block w-20 text-right">{slab.interest_rate}%</span>
+                </div>
+            ))}
+        </div>
+          ) : (
+              <p className="text-sm text-gray-700">No scheme details available.</p>
+          )}
       </section>
       <section className="my-4 grid grid-cols-4 gap-4 p-4 bg-gray-100 rounded-lg">
         <DetailRow label="Total Loan Amount Issued" tamilLabel="மொத்த கடன் தொகை" value={formatCurrency(loanData.net_amount_issued)} />
@@ -182,23 +179,16 @@ const BillPage: React.FC<BillPageProps> = ({ loanData, copyType, logo }) => {
           <p className="text-xs text-gray-600 font-semibold">Other Expenses / இதர செலவுகள்</p>
           <div className="h-8 border-b border-gray-400"></div>
         </div>
+      </section>  
+      <section className="my-4">
+          <div className="py-1">
+          <p className="text-xs text-gray-600 font-semibold">Auction Charges / ஏலக் கட்டணங்கள்</p>
+          </div>
       </section>
-
-      <div className="flex-grow flex flex-col justify-between">
-        <section className="text-xs text-gray-600">
-          <h3 className="text-base font-bold text-black mb-2">Terms & Conditions / விதிமுறைகளும் நிபந்தனைகளும்</h3>
-          <ol className="list-decimal list-inside space-y-1">
-            <li>This loan is granted against the pledge of the gold ornaments listed above.</li>
-            <li>Interest will be calculated monthly.</li>
-            <li>Payment is due on or before the {loanDay}{loanDay === 1 ? 'st' : loanDay === 2 ? 'nd' : loanDay === 3 ? 'rd' : 'th'} of every month.</li>
-            <li>Failure to repay may result in the auction of the pledged ornaments.</li>
-            <li>This document serves as the official agreement.</li>
-          </ol>
-        </section>
-
+      <div className="flex-grow flex flex-col justify-end">
         <footer className="mt-16 flex justify-between items-end border-t border-gray-400 pt-4">
             <div className="text-center"><p className="font-semibold">_________________________</p><p className="text-sm">Customer Signature / வாடிக்கையாளர் கையொப்பம்</p></div>
-            <div className="text-center"><p className="font-semibold">_________________________</p><p className="text-sm">Authorized Signatory / அங்கீகரிக்கப்பட்ட கையொப்பமிட்டவர்</p></div>
+            <div className="text-center"><p className="font-semibold">_________________________</p><p className="text-sm">Branch Manager Signature / கிளை மேலாளர் கையொப்பம்</p></div>
         </footer>
       </div>
     </div>

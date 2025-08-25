@@ -1,3 +1,4 @@
+//addgoldkaratforms
 import React, { useState, useEffect } from "react";
 import api from "../api";
 
@@ -155,6 +156,12 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
                 name="purity"
                 value={formData.purity}
                 onChange={handleChange}
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                    }
+                  }}
                 className={`${inputStyle} ${selectedKarat !== 'Others' && mode === 'add' ? disabledInputStyle : ''}`}
                 placeholder={selectedKarat !== 'Others' && mode === 'add' ? 'Auto-calculated' : 'e.g., 91.60'}
                 step="0.01"

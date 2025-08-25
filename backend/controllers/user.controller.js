@@ -133,3 +133,66 @@ exports.updateMyProfile = async (req, res) => {
         res.status(500).json({ message: "Server error." });
     }
 };
+
+exports.updateAllInvestments = async (req, res) => {
+    const updatedByUsername = req.user.username;
+    const { total_amount, action } = req.body; // 'action' will be 'add' or 'remove'
+    
+    logger.info(`[USER] Attempting to ${action.toUpperCase()} a total of ${total_amount} to all user investments by '${updatedByUsername}'.`);
+
+    const parsedAmount = parseFloat(total_amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        logger.warn(`[USER] Bulk investment update failed: Invalid amount provided.`);
+        return res.status(400).json({ message: "A valid positive amount is required." });
+    }
+
+    const client = await db.pool.connect();
+    try {
+        await client.query("BEGIN");
+
+        const usersResult = await client.query('SELECT user_id FROM datamanagement.users');
+        const users = usersResult.rows;
+        
+        if (users.length === 0) {
+            logger.warn(`[USER] Bulk investment update failed: No users found to distribute funds.`);
+            await client.query("ROLLBACK");
+            return res.status(404).json({ message: "No users found to distribute investment." });
+        }
+
+        const amountPerUser = Math.floor(parsedAmount / users.length);
+        let remainder = parsedAmount % users.length;
+
+        for (let i = 0; i < users.length; i++) {
+            const user = users[i];
+            let amountForThisUser = amountPerUser;
+            // Distribute the remainder, 1 unit at a time, to the first few users
+            if (remainder > 0) {
+                amountForThisUser += 1;
+                remainder--;
+            }
+
+            const finalAmount = action === 'add' ? amountForThisUser : -amountForThisUser;
+
+            const updateQuery = `
+                UPDATE datamanagement.users 
+                SET 
+                    total_invested = total_invested + $1,
+                    investment_updated_by = $2,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = $3;
+            `;
+            await client.query(updateQuery, [finalAmount, updatedByUsername, user.user_id]);
+        }
+        
+        await client.query("COMMIT");
+        logger.info(`[USER] Successfully performed a bulk investment ${action} by '${updatedByUsername}'.`);
+        res.status(200).json({ message: `Investment amount distributed successfully across ${users.length} users!` });
+
+    } catch (error) {
+        await client.query("ROLLBACK");
+        logger.error(`[USER] Error during bulk investment update: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during the bulk transaction." });
+    } finally {
+        client.release();
+    }
+};

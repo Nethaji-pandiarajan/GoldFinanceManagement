@@ -18,7 +18,7 @@ interface CalculatorProps {
 export default function LoanCalculatorWidget({ eligibleAmount, amountIssued, processingFee }: CalculatorProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const netAmountIssued = Math.max(0, amountIssued - processingFee);
+  const netAmountIssued = amountIssued;
   const formatCurrency = (num: number) => `₹ ${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
@@ -31,7 +31,7 @@ export default function LoanCalculatorWidget({ eligibleAmount, amountIssued, pro
         <div className="p-3 border-t border-gray-700 space-y-1">
           <CalcRow label="Eligible Amount" value={formatCurrency(eligibleAmount)} />
           <CalcRow label="Amount Issued" value={formatCurrency(amountIssued)} />
-          <CalcRow label="Processing Fee" value={`(-) ${formatCurrency(processingFee)}`} />
+          <CalcRow label="Processing Fee" value={`${formatCurrency(processingFee)}`} />
           <CalcRow label="Net Amount to Customer" value={formatCurrency(netAmountIssued)} isTotal={true} />
         </div>
       </Transition>

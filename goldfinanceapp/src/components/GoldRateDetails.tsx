@@ -121,6 +121,12 @@ export default function GoldRateDetails() {
                           className={inputStyle}
                           placeholder="Enter rate..."
                           autoFocus
+                          onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                       ) : (
                         <span onClick={() => handleEditClick(rate.karat_id)} className="cursor-pointer p-2 text-white hover:bg-[#1f2628] rounded-md">
