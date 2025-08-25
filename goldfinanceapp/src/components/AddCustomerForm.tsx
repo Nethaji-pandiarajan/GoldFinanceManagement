@@ -528,6 +528,12 @@ export default function AddCustomerForm({
                 <input
                   type="number"
                   name="nominee_age"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                    }
+                  }}
                   value={formData.nominee_age}
                   onChange={handleChange}
                   className={inputStyle}

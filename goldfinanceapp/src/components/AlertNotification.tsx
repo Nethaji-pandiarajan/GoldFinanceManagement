@@ -11,6 +11,7 @@ type AlertNotificationProps = {
   type: "success" | "error" | "alert";
   message: string;
   onClose: () => void;
+  autoCloseDelay?: number; 
 };
 
 const alertConfig = {
@@ -32,13 +33,14 @@ export default function AlertNotification({
   type,
   message,
   onClose,
+  autoCloseDelay = 3000,
 }: AlertNotificationProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, 3000);
+    }, autoCloseDelay);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose,autoCloseDelay]);
 
   const { Icon, iconColor } = alertConfig[type];
 

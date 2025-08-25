@@ -1,4 +1,4 @@
-//src/components//layouts
+//src/components//layouts/mainlayout
 import Sidebar from "../Sidebar";
 import Dashboard from "../Dashboard";
 import TopNavbar from "../TopNavbar";
@@ -57,7 +57,7 @@ export default function MainLayout({ onLogout, user }: MainLayoutProps) {
         return <ClosedLoans />;
       case 'My Profile':
         return <ProfilePage />;
-      case "Schemes":
+      case "Scheme details":
         return <Schemes />;
       default:
         return <Dashboard />;

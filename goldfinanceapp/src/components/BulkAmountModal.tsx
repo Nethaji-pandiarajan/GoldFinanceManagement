@@ -1,28 +1,30 @@
-// src/components/AmountModal.tsx
+// src/components/BulkAmountModal.tsx
+
 import React, { useState } from "react";
 import clsx from "clsx";
-import api from '../api';
+import api from "../api";
+
 type AlertState = {
   show: boolean;
   type: "success" | "error" | "alert";
   message: string;
 } | null;
 
-type AmountModalProps = {
-  user: any;
+type BulkAmountModalProps = {
   action: "add" | "remove";
   onClose: () => void;
   onSuccess: () => void;
   setAlert: (alert: AlertState) => void;
+  totalCurrentInvestment: number;
 };
 
-export default function AmountModal({
-  user,
+export default function BulkAmountModal({
   action,
   onClose,
   onSuccess,
   setAlert,
-}: AmountModalProps) {
+  totalCurrentInvestment,
+}: BulkAmountModalProps) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +41,8 @@ export default function AmountModal({
       });
       return;
     }
-    if (!isAddAction && numericAmount > parseFloat(user.total_invested)) {
+
+    if (!isAddAction && numericAmount > totalCurrentInvestment) {
       setAlert({
         show: true,
         type: "error",
@@ -51,10 +54,10 @@ export default function AmountModal({
     setLoading(true);
     try {
       const payload = {
-        user_id: user.user_id,
-        amount_to_add: action === "add" ? numericAmount : -numericAmount,
+        total_amount: numericAmount,
+        action: action,
       };
-      await api.post(`/api/users/investments`, payload);
+      await api.post(`/api/users/investments/bulk-update`, payload);
       onSuccess();
     } catch (err: any) {
       const errorMessage =
@@ -69,6 +72,7 @@ export default function AmountModal({
   const inputStyle =
     "w-full p-2 rounded bg-[#1f2628] h-11 text-white border border-[#1f2628] focus:outline-none focus:border-[#c69909]";
   const labelStyle = "block text-sm font-bold text-gray-300 mb-1";
+  const formatCurrency = (val: number) => `₹${val.toLocaleString("en-IN")}`;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50">
@@ -80,9 +84,10 @@ export default function AmountModal({
           &times;
         </button>
         <h2 className="text-2xl font-bold text-[#c69909] mb-2">
-          {isAddAction ? "Add Amount" : "Remove Amount"}
+          {isAddAction
+            ? "Add to Total Investment"
+            : "Remove from Total Investment"}
         </h2>
-        <p className="text-gray-400 mb-6">For User: {user.user_name}</p>
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -91,25 +96,23 @@ export default function AmountModal({
               <input
                 type="number"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 onKeyDown={(e) => {
                   if (e.key === "ArrowUp" || e.key === "ArrowDown") {
                     e.preventDefault();
                   }
                 }}
+                onChange={(e) => setAmount(e.target.value)}
                 className={inputStyle}
                 placeholder="0.00"
                 step="0.01"
                 autoFocus
                 required
               />
-              {!isAddAction && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Total Invested: ₹
-                  {parseFloat(user.total_invested).toLocaleString()}
-                </p>
-              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Current Total Investment:{" "}
+                {formatCurrency(totalCurrentInvestment)}
+              </p>
             </div>
           </div>
           <div className="flex justify-end space-x-4 mt-8">

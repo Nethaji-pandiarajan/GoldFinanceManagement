@@ -14,7 +14,18 @@ secondary :black : #111315
 teriary : grey : #1f2628
 primary : golden : #c69909
 */
-  
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;   
+  margin: 0;
+}
+
+/* For Firefox (optional, if anyone uses it) */
+input[type=number] {
+  appearance: none;
+  -moz-appearance: textfield;
+}
 
 div.dt-container .dt-search label,
 div.dt-container .dt-length label,

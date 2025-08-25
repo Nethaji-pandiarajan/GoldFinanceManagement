@@ -1,3 +1,4 @@
+//billpreview
 import React from 'react';
 import { save } from '@tauri-apps/api/dialog';
 import { writeBinaryFile } from '@tauri-apps/api/fs';
@@ -50,7 +51,7 @@ const BillPage = ({ loanData, copyType }: { loanData: LoanData, copyType: 'Custo
       {/* Header */}
       <header className="flex justify-between items-start border-b-2 border-black pb-4">
         <div>
-          <h1 className="text-3xl font-bold text-black">Maaya Gold Finance</h1>
+          <h1 className="text-3xl font-bold text-black">Maya Gold Finance</h1>
           <h2 className="text-xl font-semibold text-gray-700">Loan Registration Agreement</h2>
         </div>
         <div className="text-right">

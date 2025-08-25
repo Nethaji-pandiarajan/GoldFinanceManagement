@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthLayout from "../components/AuthLayout";
-import logo from "../assets/logo.png";
+// import logo from "../assets/logo.png";
+import mainlogo from "../assets/MgfLogoblack.png"
 import { UserCircleIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -47,10 +48,10 @@ function LoginPage({
     <AuthLayout>
       <div className="w-full max-w-md bg-[#111315] backdrop-blur-lg shadow-xl rounded-2xl p-8">
         <div className="flex justify-center mb-4">
-          <img src={logo} alt="Maaya Gold Finance Logo" className="h-20" />
+          <img src={mainlogo} alt="Maya Gold Finance Logo" className="h-20" />
         </div>
         <h2 className="text-3xl font-bold text-[#c69909] text-center mb-8">
-          Maaya Gold Finance
+          Maya Gold Finance
         </h2>
         {error && (
           <p className="bg-red-500/50 text-white text-sm p-3 rounded-md mb-4">

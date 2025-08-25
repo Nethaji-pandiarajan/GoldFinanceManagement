@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect ,useRef, useCallback} from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -30,6 +30,42 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [alert, setAlert] = useState<any>(null);
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>('checking');
+  const inactivityTimerRef = useRef<number | null>(null);
+  const INACTIVITY_TIMEOUT_MS =  15 * 60 * 1000;
+  const logoutDueToInactivity = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    handleLogout();
+    setAlert({
+        show: true,
+        type: 'alert',
+        message: 'You have been logged out due to inactivity.'
+    });
+  }, []); 
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(logoutDueToInactivity, INACTIVITY_TIMEOUT_MS);
+  }, [logoutDueToInactivity]);
+  useEffect(() => {
+    const activityEvents: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'click', 'scroll'];
+    if (user) {
+      resetInactivityTimer();
+      activityEvents.forEach(event => {
+        window.addEventListener(event, resetInactivityTimer);
+      });
+    }
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+    };
+  }, [user, resetInactivityTimer]);
   useEffect(() => {
     const checkAndLoad = async () => {
       const startTime = Date.now();

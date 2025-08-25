@@ -1,28 +1,37 @@
-import { useState, useEffect } from "react";
+// src/components/TotalInvestments.tsx
+
+import { useState, useEffect, useMemo } from "react";
 import AlertNotification from "./AlertNotification";
-import AmountModal from "./AmountModal";
+import BulkAmountModal from "./BulkAmountModal"; 
 import api from '../api';
+import { BanknotesIcon, PencilIcon} from "@heroicons/react/24/solid";
+
 interface ModalState {
   isOpen: boolean;
-  user: any | null;
   action: "add" | "remove";
 }
+
+interface UserInvestment {
+  total_invested: string;
+  investment_updated_by: string;
+}
+
 export default function TotalInvestments() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [userInvestments, setUserInvestments] = useState<UserInvestment[]>([]);
   const [alert, setAlert] = useState<any>(null);
-  const [modalState, setModalState] = useState<ModalState>({ 
-    isOpen: false, 
-    user: null, 
-    action: 'add' 
-  });
+  const [loading, setLoading] = useState(true);
+  const [modalState, setModalState] = useState<ModalState>({ isOpen: false, action: 'add' });
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const response = await api.get(`/api/users/investments`);
-      setUsers(response.data);
+      setUserInvestments(response.data);
     } catch (error) {
       console.error("Failed to fetch investment data:", error);
-      setAlert({ show: true, type: "error", message: "Failed to fetch user investment data." });
+      setAlert({ show: true, type: "error", message: "Failed to fetch investment data." });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,71 +39,79 @@ export default function TotalInvestments() {
     fetchData();
   }, []);
 
-  const handleOpenModal = (user: any, action: "add" | "remove") => {
-    setModalState({ isOpen: true, user, action: action });
+  const totalInvestment = useMemo(() => {
+    return userInvestments.reduce((total, user) => total + parseFloat(user.total_invested || '0'), 0);
+  }, [userInvestments]);
+
+  const lastUpdater = useMemo(() => {
+    if (userInvestments.length === 0) return 'N/A';
+    return userInvestments[0]?.investment_updated_by || 'N/A';
+  }, [userInvestments]);
+
+  const handleOpenModal = (action: "add" | "remove") => {
+    setModalState({ isOpen: true, action: action });
   };
 
   const handleSuccess = () => {
-    setModalState({ isOpen: false, user: null, action: 'add' });
+    setModalState({ isOpen: false, action: 'add' });
     fetchData();
     const message = modalState.action === "add" ? "Amount added successfully!" : "Amount removed successfully!";
     setAlert({ show: true, type: "success", message });
   };
   
-  const cellStyle = "p-3";
+  const formatCurrency = (value: number) => `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <>
       {alert?.show && <AlertNotification {...alert} onClose={() => setAlert(null)} />}
       {modalState.isOpen && (
-        <AmountModal
-          user={modalState.user}
+        <BulkAmountModal
           action={modalState.action}
-          onClose={() => setModalState({ isOpen: false, user: null, action: 'add' })}
+          onClose={() => setModalState({ isOpen: false, action: 'add' })}
           onSuccess={handleSuccess}
           setAlert={setAlert}
+          totalCurrentInvestment={totalInvestment}
         />
       )}
-      <div className="bg-[#111315] p-6 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-[#c69909] mb-4">Total Investments by User</h1>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left table-fixed">
-            <thead className="border-b-2 border-[#c69909]">
-              <tr>
-                <th className={`${cellStyle} w-[15%] text-white`}>User Name</th>
-                <th className={`${cellStyle} w-[15%] text-white`}>Email</th>
-                <th className={`${cellStyle} w-[15%] text-white`}>Total Invested</th>
-                <th className={`${cellStyle} w-[10%] text-white`}>Last Updated By</th>
-                <th className={`${cellStyle} w-[10%] text-white text-center`}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.user_id} className="border-b border-gray-800">
-                  <td className={`${cellStyle} text-gray-300 truncate`}>{user.user_name}</td>
-                  <td className={`${cellStyle} text-gray-300 truncate`}>{user.email}</td>
-                  <td className={`${cellStyle} text-white font-bold`}>₹{parseFloat(user.total_invested).toLocaleString("en-IN")}</td>
-                  <td className={`${cellStyle} text-gray-400 italic`}>{user.investment_updated_by || 'N/A'}</td>
-                  <td className={`${cellStyle} text-center`}>
-                    <div className="flex justify-center space-x-2">
-                      <button
-                        onClick={() => handleOpenModal(user, "add")}
-                        className="bg-green-600 text-white font-semibold px-3 py-1 rounded-md hover:bg-green-700"
-                      >
-                        Add
-                      </button>
-                      <button
-                        onClick={() => handleOpenModal(user, "remove")}
-                        className="bg-red-600 text-white font-semibold px-3 py-1 rounded-md hover:bg-red-700"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="bg-[#111315] p-8 rounded-lg shadow-lg max-w-2xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-[#c69909]">Total Investment</h1>
+        </div>
+        
+        {loading ? (
+          <div className="text-center p-10">
+            <p className="text-gray-400">Loading Total Investment...</p>
+          </div>
+        ) : (
+          <div className="bg-[#1f2628] border-2 border-[#c69909]/30 rounded-lg p-8 flex flex-col items-center justify-center space-y-4 shadow-inner">
+            <BanknotesIcon className="h-16 w-16 text-[#c69909]" />
+            <div>
+              <p className="text-xl font-semibold text-gray-300 text-center">Grand Total Invested</p>
+              <p className="text-5xl font-bold text-white text-center mt-2">{formatCurrency(totalInvestment)}</p>
+              <p className="text-sm text-gray-500 text-center mt-3">
+                Last Updated By: <span className="font-semibold text-gray-400">{lastUpdater}</span>
+              </p>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-center space-x-6 mt-10">
+          <button 
+            onClick={() => handleOpenModal("add")} 
+            className="flex items-center bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105"
+            disabled={loading}
+          >
+            <PencilIcon className="h-6 w-6 mr-2" /> 
+            Update
+          </button>
+          {/* <button 
+            onClick={() => handleOpenModal("remove")} 
+            className="flex items-center bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-transform transform hover:scale-105"
+            disabled={loading}
+          >
+            <MinusIcon className="h-6 w-6 mr-2" /> 
+            Remove
+          </button> */}
         </div>
       </div>
     </>
