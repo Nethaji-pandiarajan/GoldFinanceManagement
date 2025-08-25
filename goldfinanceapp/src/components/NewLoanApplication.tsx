@@ -17,7 +17,7 @@ import CustomDateTimePicker from "./DateTimePicker";
 import ImageUploadModal from "./ImageUploadModal";
 import CustomDatePicker from "./DatePicker";
 import clsx from "clsx";
-import OtpVerificationModal from "./OtpVerificationModal";
+// import OtpVerificationModal from "./OtpVerificationModal";
 import { BillPrintModal } from "./BillPrintModal";
 import companyLogo from "../assets/blackmgflogo.png";
 import TotalOrnamentValue from "./TotalOrnamentValue";
@@ -169,10 +169,10 @@ export default function NewLoanApplication() {
   const [alert, setAlert] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
-  const [isOtpModalOpen, setOtpModalOpen] = useState(false);
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  // const [isOtpModalOpen, setOtpModalOpen] = useState(false);
+  // const [otpError, setOtpError] = useState<string | null>(null);
+  // const [isSendingOtp, setIsSendingOtp] = useState(false);
+  // const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isPrintModalOpen, setPrintModalOpen] = useState(false);
   const [loanDataForPrint, setLoanDataForPrint] = useState<any | null>(null);
   useEffect(() => {
@@ -436,7 +436,6 @@ export default function NewLoanApplication() {
   };
   const handleSubmitToApi = async () => {
     setLoading(true);
-    setOtpModalOpen(false);
 
     const finalLoanDetails = {
       ...loanDetails,
@@ -502,48 +501,48 @@ export default function NewLoanApplication() {
       setConfirmModalOpen(false);
     }
   };
-  const handleSendOtp = async () => {
-    if (!selectedCustomer?.phone || !selectedCustomer?.name) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Customer phone number or name is missing.",
-      });
-      return;
-    }
-    setIsSendingOtp(true);
-    setOtpError(null);
-    try {
-      await api.post("/api/otp/send", {
-        phone: selectedCustomer.phone,
-        name: selectedCustomer.name,
-      });
-      setConfirmModalOpen(false);
-      setOtpModalOpen(true);
-    } catch (error) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Failed to send OTP. Please try again.",
-      });
-    } finally {
-      setIsSendingOtp(false);
-    }
-  };
-  const handleVerifyOtpAndSubmit = async (otp: string) => {
-    if (!selectedCustomer?.phone) return;
+  // const handleSendOtp = async () => {
+  //   if (!selectedCustomer?.phone || !selectedCustomer?.name) {
+  //     setAlert({
+  //       show: true,
+  //       type: "error",
+  //       message: "Customer phone number or name is missing.",
+  //     });
+  //     return;
+  //   }
+  //   setIsSendingOtp(true);
+  //   setOtpError(null);
+  //   try {
+  //     await api.post("/api/otp/send", {
+  //       phone: selectedCustomer.phone,
+  //       name: selectedCustomer.name,
+  //     });
+  //     setConfirmModalOpen(false);
+  //     setOtpModalOpen(true);
+  //   } catch (error) {
+  //     setAlert({
+  //       show: true,
+  //       type: "error",
+  //       message: "Failed to send OTP. Please try again.",
+  //     });
+  //   } finally {
+  //     setIsSendingOtp(false);
+  //   }
+  // };
+  // const handleVerifyOtpAndSubmit = async (otp: string) => {
+  //   if (!selectedCustomer?.phone) return;
 
-    setIsVerifyingOtp(true);
-    setOtpError(null);
-    try {
-      await api.post("/api/otp/verify", { phone: selectedCustomer.phone, otp });
-      await handleSubmitToApi();
-    } catch (err: any) {
-      setOtpError(err.response?.data?.message || "Verification failed.");
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  };
+  //   setIsVerifyingOtp(true);
+  //   setOtpError(null);
+  //   try {
+  //     await api.post("/api/otp/verify", { phone: selectedCustomer.phone, otp });
+  //     await handleSubmitToApi();
+  //   } catch (err: any) {
+  //     setOtpError(err.response?.data?.message || "Verification failed.");
+  //   } finally {
+  //     setIsVerifyingOtp(false);
+  //   }
+  // };
   const resetFormForNewLoan = async () => {
     try {
       const nextIdRes = await api.get("/api/loans/next-id");
@@ -649,15 +648,15 @@ export default function NewLoanApplication() {
       <LoanConfirmationModal
         isOpen={isConfirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
-        onConfirm={handleSendOtp}
+        onConfirm={handleSubmitToApi}
         loanDetails={loanDetails}
         customer={selectedCustomer}
         ornaments={ornamentRows}
-        loading={isSendingOtp}
+        loading={loading}
         customerDisplayDetails={customerDisplayDetails}
         selectedScheme={selectedScheme}
       />
-      {selectedCustomer && (
+      {/* {selectedCustomer && (
         <OtpVerificationModal
           isOpen={isOtpModalOpen}
           onClose={() => setOtpModalOpen(false)}
@@ -667,7 +666,7 @@ export default function NewLoanApplication() {
           error={otpError}
           customerPhone={selectedCustomer.phone}
         />
-      )}
+      )} */}
       <div className="bg-[#111315] p-6 rounded-lg shadow-lg">
         <h1 className="text-2xl font-bold text-[#c69909] mb-6">
           New Loan Application

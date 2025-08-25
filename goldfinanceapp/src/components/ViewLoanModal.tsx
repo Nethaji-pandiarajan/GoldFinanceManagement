@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-
+import { ReactNode } from "react";
 const formatCurrency = (value: any) =>
   `₹${parseFloat(String(value) || "0").toLocaleString("en-IN", {
     minimumFractionDigits: 2,
@@ -13,17 +13,25 @@ const DetailItem = ({ label, value }: { label: string; value: any }) => (
     <p className="font-semibold text-white break-words">{value || "N/A"}</p>
   </div>
 );
-const SectionHeader = ({ title }: { title: string }) => (
+const SectionHeader = ({ title }: { title: ReactNode }) => (
   <h4 className="text-lg font-semibold text-white mb-2 border-b border-gray-700 pb-1">
-    {title}
+    <>{title}</>
   </h4>
 );
 
-const SummaryCard = ({ label, value, colorClass = 'text-white' }: { label: string, value: string, colorClass?: string }) => (
-    <div className="bg-black/20 p-4 rounded-lg text-center">
-        <p className="text-sm text-gray-400 uppercase tracking-wider">{label}</p>
-        <p className={`text-sm font-bold ${colorClass}`}>{value}</p>
-    </div>
+const SummaryCard = ({
+  label,
+  value,
+  colorClass = "text-white",
+}: {
+  label: string;
+  value: string;
+  colorClass?: string;
+}) => (
+  <div className="bg-black/20 p-4 rounded-lg text-center">
+    <p className="text-sm text-gray-400 uppercase tracking-wider">{label}</p>
+    <p className={`text-sm font-bold ${colorClass}`}>{value}</p>
+  </div>
 );
 
 export default function ViewLoanModal({
@@ -34,7 +42,14 @@ export default function ViewLoanModal({
   onClose: () => void;
 }) {
   if (!loanData) return null;
-  const remainingBalance = parseFloat(loanData.net_amount_issued) - parseFloat(loanData.principal_amount_paid);
+  const remainingBalance =
+    parseFloat(loanData.net_amount_issued) -
+    parseFloat(loanData.principal_amount_paid);
+  const loanStartDate = new Date(loanData.loan_datetime);
+  const today = new Date();
+  const timeDiff = today.getTime() - loanStartDate.getTime();
+  const daysSinceStart = Math.floor(timeDiff / (1000 * 3600 * 24));
+  const isNewLoanView = daysSinceStart <= 30;
   return (
     <Transition appear show={true} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -60,7 +75,7 @@ export default function ViewLoanModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-[#111315] border border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-[#111315] border border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
                 <Dialog.Title
                   as="h3"
                   className="text-2xl font-bold leading-6 text-[#c69909]"
@@ -82,7 +97,7 @@ export default function ViewLoanModal({
                       />
                       {loanData.current_interest_rate && (
                         <DetailItem
-                          label="Current Penalty Rate"
+                          label="Current Rate"
                           value={`${loanData.current_interest_rate}%`}
                         />
                       )}
@@ -103,6 +118,10 @@ export default function ViewLoanModal({
                       <DetailItem
                         label="Final Due Date"
                         value={new Date(loanData.due_date).toLocaleDateString()}
+                      />
+                      <DetailItem
+                        label="Scheme Name"
+                        value={loanData.scheme?.scheme_name || "N/A"}
                       />
                     </div>
                   </section>
@@ -128,17 +147,25 @@ export default function ViewLoanModal({
 
                   <section>
                     <SectionHeader
-                      title={`Pledged Ornaments (${
-                        loanData.ornaments?.length || 0
-                      })`}
+                      title={
+                        <>
+                          Pledged Ornaments (
+                          <span style={{ color: "red", fontWeight: "bold" }}>
+                            {loanData.ornaments?.length || 0}
+                          </span>
+                          )
+                        </>
+                      }
                     />
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead className="text-gray-400">
                           <tr>
-                            <th className="p-2">Ornament Name</th>
-                            <th className="p-2">Type</th>
-                            <th className="p-2">Material</th>
+                            <th className="p-2">Name</th>
+                            <th className="p-2">Qty</th>
+                            <th className="p-2">Gross Wt.</th>
+                            <th className="p-2">Stone Wt.</th>
+                            <th className="p-2">Net Wt.</th>
                             <th className="p-2">Grams</th>
                             <th className="p-2">Karat</th>
                           </tr>
@@ -152,16 +179,20 @@ export default function ViewLoanModal({
                               <td className="p-2 font-semibold">
                                 {orn.ornament_name}
                               </td>
-                              <td className="p-2 text-gray-300">
-                                {orn.ornament_type}
+                              <td className="p-2">{orn.quantity}</td>
+                              <td className="p-2">
+                                {parseFloat(orn.gross_weight).toFixed(2)}g
                               </td>
-                              <td className="p-2 text-gray-300">
-                                {orn.material_type}
+                              <td className="p-2">
+                                {parseFloat(orn.stone_weight).toFixed(2)}g
                               </td>
-                              <td className="p-2 text-gray-300">
+                              <td className="p-2 font-bold">
+                                {parseFloat(orn.net_weight).toFixed(2)}g
+                              </td>
+                              <td className="p-2 text-gray-500">
                                 {parseFloat(orn.grams).toFixed(2)}g
                               </td>
-                              <td className="p-2 text-gray-300">{orn.karat}</td>
+                              <td className="p-2">{orn.karat}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -172,67 +203,167 @@ export default function ViewLoanModal({
                   <section>
                     <SectionHeader title="Payment Schedule" />
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <SummaryCard label="Total Principal Amount" value={formatCurrency(loanData.net_amount_issued)} colorClass="text-blue-300" />
-                        <SummaryCard label="Total Paid" value={formatCurrency(loanData.principal_amount_paid)} colorClass="text-green-300" />
-                        <SummaryCard label="Remaining Balance" value={formatCurrency(remainingBalance)} colorClass="text-yellow-300" />
+                      <SummaryCard
+                        label="Total Principal Amount"
+                        value={formatCurrency(loanData.net_amount_issued)}
+                        colorClass="text-blue-300"
+                      />
+                      <SummaryCard
+                        label="Total Paid"
+                        value={formatCurrency(loanData.principal_amount_paid)}
+                        colorClass="text-green-300"
+                      />
+                      <SummaryCard
+                        label="Remaining Balance"
+                        value={formatCurrency(remainingBalance)}
+                        colorClass="text-yellow-300"
+                      />
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="text-gray-400">
-                          <tr>
-                            <th className="p-2">Month</th>
-                            <th className="p-2">Principal Balance</th>
-                            <th className="p-2">Principal Paid</th>
-                            <th className="p-2">Interest Due</th>
-                            <th className="p-2">Interest Paid</th>
-                            <th className="p-2">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {loanData.payments?.map((p: any) => (
-                            <tr
-                              key={p.payment_id}
-                              className="border-b border-gray-800 text-white"
-                            >
-                              <td className="p-2">
-                                {new Date(p.payment_month).toLocaleDateString(
-                                  "en-US",
-                                  { month: "short", year: "numeric" }
-                                )}
-                              </td>
-                              <td className="p-2">
-                                {formatCurrency(p.loan_balance)}
-                              </td>
-                              <td className="p-2">
-                                {formatCurrency(p.principal_amount_paid)}
-                              </td>
-                              <td className="p-2">
-                                {formatCurrency(p.interest_amount_due)}
-                              </td>
-                              <td className="p-2">
-                                {formatCurrency(p.interest_amount_paid)}
-                              </td>
-                              <td className="p-2">
-                                <span
-                                  className={clsx(
-                                    "px-2 py-1 text-xs font-semibold rounded-full",
-                                    {
-                                      "bg-green-500/20 text-green-300":
-                                        p.payment_status === "Paid",
-                                      "bg-yellow-500/20 text-yellow-300":
-                                        p.payment_status === "Partial",
-                                      "bg-red-500/20 text-red-300":
-                                        p.payment_status === "Pending",
-                                    }
-                                  )}
-                                >
-                                  {p.payment_status}
-                                </span>
-                              </td>
+                      {isNewLoanView ? (
+                        <table className="w-full text-left text-sm">
+                          <thead className="text-gray-400">
+                            <tr>
+                              <th className="p-2">Loan Date</th>
+                              <th className="p-2">Principal Balance</th>
+                              <th className="p-2">Principal Paid</th>
+                              <th className="p-2">Days Elapsed</th>
+                              <th className="p-2">Interest Due</th>
+                              <th className="p-2">Interest Paid</th>
+                              <th className="p-2">Payment Date</th>
+                              <th className="p-2">Status</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {loanData.payments?.map((p: any) => (
+                              <tr
+                                key={p.payment_id}
+                                className="border-b border-gray-800 text-white"
+                              >
+                                <td className="p-2">
+                                  {new Date(
+                                    loanData.loan_datetime
+                                  ).toLocaleDateString()}
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.loan_balance)}
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.principal_amount_paid)}
+                                </td>
+                                <td className="p-2 font-bold">
+                                  {daysSinceStart} days
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.interest_amount_due)}
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.interest_amount_paid)}
+                                </td>
+                                <td className="p-2">
+                                  {p.payment_date
+                                    ? new Date(
+                                        p.payment_date
+                                      ).toLocaleDateString()
+                                    : "N/A"}
+                                </td>
+                                <td className="p-2">
+                                  <span
+                                    className={clsx(
+                                      "px-2 py-1 text-xs font-semibold rounded-full",
+                                      {
+                                        "bg-green-500/20 text-green-300":
+                                          p.payment_status === "Paid",
+                                        "bg-yellow-500/20 text-yellow-300":
+                                          p.payment_status === "Pending",
+                                        "bg-orange-500/20 text-orange-300":
+                                          p.payment_status === "Overdue",
+                                        "bg-red-500/20 text-red-300":
+                                          p.payment_status === "Skipped",
+                                      }
+                                    )}
+                                  >
+                                    {p.payment_status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <table className="w-full text-left text-sm">
+                          <thead className="text-gray-400">
+                            <tr>
+                              <th className="p-2">Month</th>
+                              <th className="p-2">Principal Balance</th>
+                              <th className="p-2">Principal Paid</th>
+                              <th className="p-2">Interest Rate</th>
+                              <th className="p-2">Interest Due</th>
+                              <th className="p-2">Interest Paid</th>
+                              <th className="p-2">Payment Date</th>
+                              <th className="p-2">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loanData.payments?.map((p: any) => (
+                              <tr
+                                key={p.payment_id}
+                                className="border-b border-gray-800 text-white"
+                              >
+                                <td className="p-2">
+                                  {new Date(p.payment_month).toLocaleDateString(
+                                    "en-US",
+                                    { month: "short", year: "numeric" }
+                                  )}
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.loan_balance)}
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.principal_amount_paid)}
+                                </td>
+                                <td className="p-2">
+                                  {loanData.current_interest_rate ||
+                                    loanData.interest_rate}
+                                  %
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.interest_amount_due)}
+                                </td>
+                                <td className="p-2">
+                                  {formatCurrency(p.interest_amount_paid)}
+                                </td>
+                                <td className="p-2">
+                                  {p.payment_date
+                                    ? new Date(
+                                        p.payment_date
+                                      ).toLocaleDateString()
+                                    : "N/A"}
+                                </td>
+                                <td className="p-2">
+                                  <span
+                                    className={clsx(
+                                      "px-2 py-1 text-xs font-semibold rounded-full",
+                                      {
+                                        "bg-green-500/20 text-green-300":
+                                          p.payment_status === "Paid",
+                                        "bg-yellow-500/20 text-yellow-300":
+                                          p.payment_status === "Pending",
+                                        "bg-orange-500/20 text-orange-300":
+                                          p.payment_status === "Overdue",
+                                        "bg-red-500/20 text-red-300":
+                                          p.payment_status === "Skipped",
+                                      }
+                                    )}
+                                  >
+                                    {p.payment_status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   </section>
                 </div>
