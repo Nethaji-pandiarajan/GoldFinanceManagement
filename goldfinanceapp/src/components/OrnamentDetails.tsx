@@ -8,7 +8,7 @@ import AlertNotification from "./AlertNotification";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import ViewOrnamentModal from "./ViewOrnamentModal";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
 DataTable.use(DT);
 
 type AlertState = {

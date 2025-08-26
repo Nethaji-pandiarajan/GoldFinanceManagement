@@ -16,7 +16,7 @@ exports.getAllAllowedMachines = async (req, res) => {
 
 exports.addAllowedMachine = async (req, res) => {
     const { cpu_serial, mac_address } = req.body;
-    const addedByUsername = req.user.username; // From authMiddleware
+    const addedByUsername = 'SYSTEM_TOOL'
 
     logger.info(`[MACHINE] Attempting to ADD new allowed machine by '${addedByUsername}'. MAC: '${mac_address}'`);
 
@@ -26,7 +26,6 @@ exports.addAllowedMachine = async (req, res) => {
     }
 
     try {
-        // Check if the machine already exists to prevent duplicates
         const existingMachine = await db.query("SELECT 1 FROM datamanagement.allowed_machines WHERE mac_address = $1", [mac_address]);
         if (existingMachine.rows.length > 0) {
             logger.warn(`[MACHINE] Add failed: Machine with MAC address '${mac_address}' already exists.`);
@@ -48,7 +47,6 @@ exports.addAllowedMachine = async (req, res) => {
     }
 };
 
-// DELETE an allowed machine
 exports.deleteAllowedMachine = async (req, res) => {
     const { id } = req.params;
     const parsedId = parseInt(id, 10);

@@ -7,7 +7,7 @@ import AuthLayout from "../components/AuthLayout";
 import mainlogo from "../assets/MgfLogoblack.png"
 import { UserCircleIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
 
 function LoginPage({
   onLoginSuccess,

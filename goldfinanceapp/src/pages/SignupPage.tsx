@@ -13,7 +13,7 @@ import {
   UsersIcon,
 } from "@heroicons/react/24/solid";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
 
 function SignupPage() {
   const [formData, setFormData] = useState({
