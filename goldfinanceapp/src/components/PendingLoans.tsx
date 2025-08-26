@@ -3,7 +3,7 @@ import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
 import api from '../api';
 import AlertNotification from './AlertNotification'; 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
 const formatCurrency = (value: string | number) => `₹${parseFloat(String(value) || '0').toLocaleString("en-IN")}`;
 DataTable.use(DT);
 type AlertState = {

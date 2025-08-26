@@ -8,7 +8,7 @@ import ViewLoanModal from "./ViewLoanModal";
 import LoanPaymentModal from "./LoanPaymentModal";
 import clsx from 'clsx';
 import ConfirmationDialog from "./ConfirmationDialog";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
 DataTable.use(DT);
 
 const formatCurrency = (value: any) => `₹${parseFloat(String(value) || '0').toLocaleString("en-IN")}`;
