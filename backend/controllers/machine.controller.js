@@ -3,10 +3,12 @@
 const db = require("../db");
 const logger = require("../config/logger");
 
+// GET all allowed machines
 exports.getAllAllowedMachines = async (req, res) => {
     logger.info(`[MACHINE] Request received to GET all allowed machines.`);
     try {
-        const result = await db.query("SELECT machine_id, cpu_serial, mac_address, added_on, added_by FROM datamanagement.allowed_machines ORDER BY added_on DESC");
+        // Use the correct column names from your table: deviceid, created_at
+        const result = await db.query("SELECT deviceid, cpu_serial, mac_address, created_at FROM datamanagement.allowed_machines ORDER BY created_at DESC");
         res.json(result.rows);
     } catch (error) {
         logger.error(`[MACHINE] Error fetching allowed machines: ${error.message}`, { stack: error.stack });
@@ -14,11 +16,11 @@ exports.getAllAllowedMachines = async (req, res) => {
     }
 };
 
+// ADD a new allowed machine
 exports.addAllowedMachine = async (req, res) => {
     const { cpu_serial, mac_address } = req.body;
-    const addedByUsername = 'SYSTEM_TOOL'
 
-    logger.info(`[MACHINE] Attempting to ADD new allowed machine by '${addedByUsername}'. MAC: '${mac_address}'`);
+    logger.info(`[MACHINE] Attempting to ADD new allowed machine via public API. MAC: '${mac_address}'`);
 
     if (!cpu_serial || !mac_address) {
         logger.warn(`[MACHINE] Add failed: Missing cpu_serial or mac_address.`);
@@ -32,13 +34,17 @@ exports.addAllowedMachine = async (req, res) => {
             return res.status(409).json({ message: "A machine with this MAC address is already in the allowed list." });
         }
 
+        // --- START OF CORRECTION ---
+        // The INSERT statement now ONLY includes the columns that actually exist in your table.
+        // The `created_at` column will be filled automatically if it has a DEFAULT.
         const query = `
-            INSERT INTO datamanagement.allowed_machines (cpu_serial, mac_address, added_by)
-            VALUES ($1, $2, $3) RETURNING *;
+            INSERT INTO datamanagement.allowed_machines (cpu_serial, mac_address)
+            VALUES ($1, $2) RETURNING *;
         `;
-        const result = await db.query(query, [cpu_serial, mac_address, addedByUsername]);
+        const result = await db.query(query, [cpu_serial, mac_address]);
+        // --- END OF CORRECTION ---
 
-        logger.info(`[MACHINE] Successfully ADDED new machine. ID: ${result.rows[0].machine_id}, MAC: '${mac_address}'.`);
+        logger.info(`[MACHINE] Successfully ADDED new machine. ID: ${result.rows[0].deviceid}, MAC: '${mac_address}'.`);
         res.status(201).json({ message: "Machine added to allowed list successfully!", machine: result.rows[0] });
 
     } catch (error) {
@@ -47,6 +53,7 @@ exports.addAllowedMachine = async (req, res) => {
     }
 };
 
+// DELETE an allowed machine
 exports.deleteAllowedMachine = async (req, res) => {
     const { id } = req.params;
     const parsedId = parseInt(id, 10);
@@ -58,7 +65,8 @@ exports.deleteAllowedMachine = async (req, res) => {
     }
 
     try {
-        const result = await db.query("DELETE FROM datamanagement.allowed_machines WHERE machine_id = $1", [parsedId]);
+        // Use the correct primary key column name: deviceid
+        const result = await db.query("DELETE FROM datamanagement.allowed_machines WHERE deviceid = $1", [parsedId]);
         if (result.rowCount === 0) {
             logger.warn(`[MACHINE] Delete failed: Machine with ID '${id}' not found.`);
             return res.status(404).json({ message: "Machine not found." });
