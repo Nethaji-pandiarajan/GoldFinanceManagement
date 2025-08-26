@@ -3,7 +3,35 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../db");
 const logger = require("../config/logger");
+exports.verifyLicense = async (req, res) => {
+    const { cpu_brand, mac_address } = req.body;
+    
+    logger.info(`[LICENSE] Received license verification request for CPU: '${cpu_brand}', MAC: '${mac_address}'.`);
 
+    if (!cpu_brand || !mac_address) {
+        logger.warn(`[LICENSE] Verification failed: Missing CPU or MAC address in request.`);
+        return res.status(400).json({ message: "CPU brand and MAC address are required." });
+    }
+
+    try {
+        const query = "SELECT 1 FROM datamanagement.allowed_machines WHERE cpu_serial = $1 AND mac_address = $2";
+        const result = await db.query(query, [cpu_brand, mac_address]);
+
+        const isAllowed = result.rows.length > 0;
+
+        if (isAllowed) {
+            logger.info(`[LICENSE] Verification SUCCESSFUL for MAC: '${mac_address}'.`);
+        } else {
+            logger.warn(`[LICENSE] Verification FAILED for MAC: '${mac_address}'. Machine not found in allowed list.`);
+        }
+
+        res.json({ isLicensed: isAllowed });
+        
+    } catch (error) {
+        logger.error(`[LICENSE] Error during license verification: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during license verification." });
+    }
+};
 exports.signup = async (req, res) => {
   const {
     first_name, last_name, user_name, email, password,
