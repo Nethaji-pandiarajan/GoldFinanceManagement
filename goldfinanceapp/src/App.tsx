@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import api from "./api";
 import { jwtDecode } from "jwt-decode";
 import MainLayout from "./components/layouts/MainLayout";
 import LoginPage from "./pages/LoginPage";
@@ -12,6 +13,10 @@ import SignupPage from "./pages/SignupPage";
 import AlertNotification from "./components/AlertNotification";
 import { setGlobalAlert } from "./api";
 import { invoke } from "@tauri-apps/api";
+interface MachineInfo {
+  cpu_brand: string;
+  mac_address: string;
+}
 interface User {
   id: number;
   username: string;
@@ -67,14 +72,19 @@ function App() {
     };
   }, [user, resetInactivityTimer]);
   useEffect(() => {
-    const checkAndLoad = async () => {
+    const verifyDeviceAndLoad  = async () => {
       const startTime = Date.now();
       let isLicensed = false;
       try {
-        isLicensed = await invoke('check_license') as boolean;
-        
+        const machineInfo = await invoke<MachineInfo>('get_machine_details');
+        console.log("Got machine details from Rust:", machineInfo);
+        const response = await api.post('/api/auth/verify-license', {
+            cpu_brand: machineInfo.cpu_brand,
+            mac_address: machineInfo.mac_address,
+        });
+        isLicensed = response.data.isLicensed;
       } catch (e) {
-        console.error("License check failed to communicate with Rust:", e);
+        console.error("License check failed:", e);
         isLicensed = false;
       }
       
@@ -107,7 +117,7 @@ function App() {
       setIsLoading(false);
     }
     
-    checkAndLoad();
+    verifyDeviceAndLoad();
     setGlobalAlert(setAlert); 
   }, []);
   const handleLoginSuccess = (token: string) => {
