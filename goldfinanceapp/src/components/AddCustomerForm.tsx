@@ -184,8 +184,8 @@ export default function AddCustomerForm({
   };
   const validateForm = async (): Promise<boolean> => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address.");
+    if (formData.email && !emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address if you choose to provide one.");
       return false;
     }
     const phoneRegex = /^\d{10,13}$/;
@@ -208,13 +208,13 @@ export default function AddCustomerForm({
       setLoading(true);
       const customerUuid =
         mode === "edit" ? initialData.customer_uuid : undefined;
-      const emailPayload = { email: formData.email, customerUuid };
-      const emailResponse = await api.post("/api/check-email", emailPayload);
-      if (emailResponse.data.exists) {
-        setError("This email address is already taken. Please use another.");
-        setLoading(false);
-        return false;
-      }
+      // const emailPayload = { email: formData.email, customerUuid };
+      // const emailResponse = await api.post("/api/check-email", emailPayload);
+      // if (emailResponse.data.exists) {
+      //   setError("This email address is already taken. Please use another.");
+      //   setLoading(false);
+      //   return false;
+      // }
       const phonePayload = { phone: formData.phone, customerUuid };
       const phoneResponse = await api.post("/api/check-phone", phonePayload);
       if (phoneResponse.data.exists) {
@@ -319,14 +319,13 @@ export default function AddCustomerForm({
                 />
               </div>
               <div>
-                <label className={labelStyle}>Email*</label>
+                <label className={labelStyle}>Email</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   className={inputStyle}
-                  required
                 />
               </div>
               <div>
