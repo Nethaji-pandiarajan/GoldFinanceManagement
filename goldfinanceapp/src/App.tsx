@@ -147,6 +147,7 @@ function App() {
             <h1 className="text-4xl font-bold">LICENSE ERROR</h1>
             <p className="mt-4 text-xl text-center">This device is not registered as a licensed machine.</p>
             <p className="text-sm mt-2">Please contact support for licensing activation.</p>
+            <p className="text-sm mt-2">Check your internet connection and try again.</p>
         </div>
     );
   }

@@ -42,7 +42,7 @@ function App() {
     setStatus("adding");
     setErrorMessage("");
     try {
-      const backendUrl = "https://goldfinancemanagement.onrender.com/api/machines";
+      const backendUrl = "http://localhost:4000/api/machines";
       
       await axios.post(backendUrl, {
         cpu_serial: machineInfo.cpu_brand,

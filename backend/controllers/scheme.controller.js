@@ -6,7 +6,7 @@ exports.getAllSchemes = async (req, res) => {
     try {
         const query = `
             SELECT 
-                scheme_id, scheme_name, description, created_on, created_by, updated_on, updated_by
+                scheme_id, scheme_name, COALESCE(description, 'N/A') AS description, created_on, created_by, updated_on, updated_by
             FROM datamanagement.scheme_details
             ORDER BY created_on DESC;
         `;

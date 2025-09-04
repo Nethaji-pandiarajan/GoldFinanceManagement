@@ -21,6 +21,8 @@ import clsx from "clsx";
 import { BillPrintModal } from "./BillPrintModal";
 import companyLogo from "../assets/blackmgflogo.png";
 import TotalOrnamentValue from "./TotalOrnamentValue";
+
+const LOCAL_STORAGE_LOAN_ID_KEY = 'activeLoanId';
 const bufferToBase64 = (
   buffer: { type: string; data: number[] } | null | undefined
 ): string | null => {
@@ -142,7 +144,7 @@ const CalcRow = ({
 
 export default function NewLoanApplication() {
   const [loanDetails, setLoanDetails] = useState<LoanDetails>(
-    initialLoanDetails("Loading...")
+    initialLoanDetails("")
   );
   const [ornamentRows, setOrnamentRows] = useState<OrnamentRow[]>([
     initialOrnamentRow(),
@@ -178,15 +180,21 @@ export default function NewLoanApplication() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [nextIdRes, goldRatesRes, custRes, ornRes, schemesRes] =
+        let currentLoanId = localStorage.getItem(LOCAL_STORAGE_LOAN_ID_KEY);
+        
+        if (!currentLoanId) {
+          const nextIdRes = await api.get("/api/loans/next-id");
+          currentLoanId = nextIdRes.data.next_id;
+          localStorage.setItem(LOCAL_STORAGE_LOAN_ID_KEY, currentLoanId ?? "");
+        }
+        const [ goldRatesRes, custRes, ornRes, schemesRes] =
           await Promise.all([
-            api.get("/api/loans/next-id"),
             api.get("/api/loans/calculation-data"),
             api.get(`/api/customers-list`),
             api.get(`/api/ornaments/all`),
             api.get("/api/schemes/utils/list"),
           ]);
-        setLoanDetails(initialLoanDetails(nextIdRes.data.next_id));
+        setLoanDetails(prev => ({ ...prev, loan_id: currentLoanId!}));
         setCalculationData({ goldRates: goldRatesRes.data.goldRates });
         setCustomers(custRes.data);
         setMasterOrnamentList(ornRes.data);
@@ -487,6 +495,8 @@ export default function NewLoanApplication() {
           image_preview: orn.image_preview,
         })),
       };
+      localStorage.removeItem(LOCAL_STORAGE_LOAN_ID_KEY);
+      console.log("Loan created successfully. Cleared activeLoanId from localStorage.");
       setLoanDataForPrint(completeLoanDataForPrint);
       setPrintModalOpen(true);
       // setAlert({ show: true, type: "success", message: `Loan #${newLoanId} created successfully!` });
@@ -728,8 +738,117 @@ export default function NewLoanApplication() {
               </div>
             </div>
           </section>
-
           <section>
+            <SectionHeader title="Customer Details" />
+            
+            {/* Main container for the top section (inputs + image) */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start md:gap-8">
+
+              {/* LEFT SIDE: Container for all input fields, configured to grow */}
+              <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* --- ROW 1 --- */}
+                {/* Customer Name & Phone */}
+                <div>
+                  <label className={labelStyle}>Customer Name & Phone*</label>
+                  <SearchableDropdown
+                    items={customers}
+                    selected={selectedCustomer}
+                    setSelected={setSelectedCustomer}
+                    placeholder="Search customers..."
+                  />
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label className={labelStyle}>Gender</label>
+                  <div className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}>
+                    {customerDisplayDetails?.gender || "..."}
+                  </div>
+                </div>
+
+                {/* --- ROW 2 --- */}
+                {/* Date of Birth */}
+                <div>
+                  <label className={labelStyle}>Date of Birth</label>
+                  <div className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}>
+                    {customerDisplayDetails?.date_of_birth
+                      ? new Date(customerDisplayDetails.date_of_birth).toLocaleDateString()
+                      : "..."}
+                  </div>
+                </div>
+
+                {/* Nominee */}
+                <div>
+                  <label className={labelStyle}>Nominee</label>
+                  <div
+                    className={`${inputStyle} bg-black/20 flex items-center text-gray-400 truncate`}
+                    title={
+                      customerDisplayDetails
+                        ? `${customerDisplayDetails.nominee_name} (${customerDisplayDetails.nominee_mobile})`
+                        : ""
+                    }
+                  >
+                    {customerDisplayDetails?.nominee_name || "..."}
+                  </div>
+                </div>
+              </div>
+              <div className="flex-shrink-0 flex flex-col items-center md:items-start mt-6 md:mt-0">
+                <label className={labelStyle}>Customer Image</label>
+                <div className="w-35 h-40 bg-black/20 rounded-md flex items-center justify-center border border-gray-700">
+                  {customerDisplayDetails?.customer_image ? (
+                    <img
+                      src={bufferToBase64(customerDisplayDetails.customer_image) ?? undefined}
+                      alt="Customer"
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                  ) : (
+                    <span className="text-gray-500 text-sm p-2 text-center">Select Customer</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* --- ROW 3: Addresses --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div>
+                <label className={labelStyle}>Permanent Address</label>
+                <textarea
+                  value={customerDisplayDetails?.address || "..."}
+                  className={`${inputStyle} bg-black/20 cursor-not-allowed`}
+                  readOnly
+                  rows={3}
+                ></textarea>
+              </div>
+              <div>
+                <div className="flex justify-between items-center">
+                  <label className={labelStyle}>Current Address</label>
+                  <div className="flex items-center mb-2">
+                    <input
+                      id="sameAsPermanent"
+                      type="checkbox"
+                      checked={usePermanentAddress}
+                      onChange={(e) => setUsePermanentAddress(e.target.checked)}
+                      className="h-4 w-4 rounded bg-[#1f2628] border-gray-600 text-[#c69909] focus:ring-[#c69909]"
+                      disabled={!selectedCustomer}
+                    />
+                    <label htmlFor="sameAsPermanent" className="ml-2 text-sm text-gray-300">
+                      Same as permanent
+                    </label>
+                  </div>
+                </div>
+                <textarea
+                  value={currentAddress}
+                  onChange={handleCurrentAddressChange}
+                  className={inputStyle}
+                  rows={3}
+                  placeholder={selectedCustomer ? "Enter current address..." : "Select a customer first"}
+                  disabled={!selectedCustomer}
+                ></textarea>
+              </div>
+            </div>
+          </section>
+          {/* <section>
             <SectionHeader title="Customer Details" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
               <div className="md:col-span-2 space-y-4">
@@ -844,7 +963,7 @@ export default function NewLoanApplication() {
                 ></textarea>
               </div>
             </div>
-          </section>
+          </section> */}
 
           <section>
             <SectionHeader title="Ornament Details" />

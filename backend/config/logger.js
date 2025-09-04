@@ -2,10 +2,8 @@
 const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
-const os = require('os');
 const fs = require('fs');
-const documentsDir = path.join(os.homedir(), 'Documents');
-const logDir = path.join(documentsDir, 'MaayaGoldFinanceLogs');
+let logDir = path.join(__dirname, '..', 'logs');
 if (!fs.existsSync(logDir)) {
   try {
     fs.mkdirSync(logDir, { recursive: true });

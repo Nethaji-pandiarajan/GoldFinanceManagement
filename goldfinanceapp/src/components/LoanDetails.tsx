@@ -8,7 +8,7 @@ import ViewLoanModal from "./ViewLoanModal";
 import LoanPaymentModal from "./LoanPaymentModal";
 import clsx from 'clsx';
 import ConfirmationDialog from "./ConfirmationDialog";
-const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
+const API_BASE_URL = "http://localhost:4000"
 DataTable.use(DT);
 
 const formatCurrency = (value: any) => `₹${parseFloat(String(value) || '0').toLocaleString("en-IN")}`;
@@ -97,14 +97,16 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
         const paymentIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 3.75a3 3 0 00-3 3v.75h21v-.75a3 3 0 00-3-3h-15z" /><path fill-rule="evenodd" d="M22.5 9.75h-21v7.5a3 3 0 003 3h15a3 3 0 003-3v-7.5zm-18 3.75a.75.75 0 01.75-.75h6a.75.75 0 010 1.5h-6a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5h3a.75.75 0 000-1.5h-3z" clip-rule="evenodd" /></svg>`;
         const viewIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a.75.75 0 010-1.113zM12.001 18a5.25 5.25 0 100-10.5 5.25 5.25 0 000 10.5z" clip-rule="evenodd" /></svg>`;
         const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.006a.75.75 0 01-.742.742H5.654a.75.75 0 01-.742-.742L3.91 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452z" clip-rule="evenodd" /><path d="M18 10.5a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0v-6a.75.75 0 01.75-.75zM10.5 10.5a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0v-6a.75.75 0 01.75-.75zM6 10.5a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0v-6a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`;
+        const isCompleted = row.completion_status === 'Completed';
+        const paymentButton = isCompleted
+            ? `<button title="Payment not available for completed loans" class="p-2 rounded-full text-gray-600 cursor-not-allowed" disabled>${paymentIcon}</button>`
+            : `<button title="Make Payment" data-action="payment" data-row='${JSON.stringify(row)}' class="p-2 rounded-full text-yellow-400 hover:bg-yellow-500/20">${paymentIcon}</button>`;
         return `
           <div class="flex items-center justify-center space-x-2">
             <button title="View Details" data-action="view" data-row='${JSON.stringify(
               row
             )}' class="p-2 rounded-full text-green-400 hover:bg-green-500/20">${viewIcon}</button>
-            <button title="Make Payment" data-action="payment" data-row='${JSON.stringify(
-              row
-            )}' class="p-2 rounded-full text-yellow-400 hover:bg-yellow-500/20">${paymentIcon}</button>
+            ${paymentButton}
             <button title="Delete Loan" data-action="delete" data-row='${JSON.stringify(row)}' class="p-2 rounded-full text-red-500 hover:bg-red-500/20">${deleteIcon}</button>
           </div>
         `;

@@ -9,9 +9,9 @@ export default defineConfig(async () => ({
   ],
   clearScreen: false,
   server: {
+    host: 'localhost',
     port: 1420,
     strictPort: true,
-    host: '0.0.0.0',
     hmr:{
           protocol: "ws",
           host : "localhost",

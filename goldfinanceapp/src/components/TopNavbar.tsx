@@ -5,6 +5,7 @@ import {
   ArrowLeftOnRectangleIcon,
   ChevronDownIcon,
   UserPlusIcon,
+  UsersIcon,
 } from "@heroicons/react/24/solid";
 import ConfirmationDialog from "./ConfirmationDialog";
 import clsx from "clsx";
@@ -129,6 +130,16 @@ export default function TopNavbar({ onLogout, setActiveItem , user}: TopNavbarPr
               <div className="absolute right-0 mt-2 w-48 bg-[#1f2628] rounded-md shadow-lg py-1 z-20">
                 {user.role === 'super_admin' && (
                   <>
+                    <button
+                      onClick={() => {
+                        setActiveItem('Manage Users');
+                        setAccountDropdownOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315] hover:text-white"
+                    >
+                      <UsersIcon className="h-5 w-5 mr-3" />
+                      Manage Users
+                    </button>
                     <button
                       onClick={() => {
                         setShowCreateUserModal(true);

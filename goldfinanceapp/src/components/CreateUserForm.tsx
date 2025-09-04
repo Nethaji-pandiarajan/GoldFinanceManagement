@@ -1,5 +1,4 @@
 import { useState } from "react";
-import api from "../api";
 import {
   UserIcon,
   AtSymbolIcon,
@@ -11,10 +10,9 @@ import {
   IdentificationIcon,
 } from "@heroicons/react/24/solid";
 
-
 interface CreateUserFormProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (formData: any) => void; 
 }
 
 export default function CreateUserForm({ onClose, onSuccess }: CreateUserFormProps) {
@@ -29,32 +27,25 @@ export default function CreateUserForm({ onClose, onSuccess }: CreateUserFormPro
     gender: "",
     role: "",
   });
+
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
-    setLoading(true);
-    try {
-      const response = await api.post(`/api/auth/signup`, formData);
-      setSuccess(response.data.message);
-      setTimeout(() => {
-        onSuccess();
-      }, 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Signup failed. Please try again.");
-      setLoading(false);
+
+    if (!formData.first_name || !formData.user_name || !formData.email || !formData.password || !formData.role) {
+      setError("Please fill in all required fields marked with *.");
+      return;
     }
+    onSuccess(formData);
   };
 
-  const inputStyle = "w-full p-2 rounded bg-[#1f2628] h-11 pl-8 text-white border border-[#1f2628] focus:outline-none focus:border-[#c69909]";
+  const inputStyle = "w-full p-2 rounded bg-[#1f2628] h-11 pl-8 text-white border border-transparent focus:outline-none focus:border-[#c69909]";
   const iconStyle = "absolute left-2 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none";
 
   return (
@@ -70,9 +61,7 @@ export default function CreateUserForm({ onClose, onSuccess }: CreateUserFormPro
           </svg>
         </button>
         <h2 className="text-2xl font-bold text-[#c69909] mb-6">Create New User</h2>
-
         {error && <p className="bg-red-500/20 border border-red-500 text-red-300 p-3 rounded mb-4 text-center">{error}</p>}
-        {success && <p className="bg-green-500/20 border border-green-500 text-green-300 p-3 rounded mb-4 text-center">{success}</p>}
 
         <form onSubmit={handleSubmit} className="text-left">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -116,9 +105,9 @@ export default function CreateUserForm({ onClose, onSuccess }: CreateUserFormPro
           </div>
 
           <div className="flex justify-end space-x-4 mt-8">
-            <button type="button" onClick={onClose} className="px-6 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-semibold" disabled={loading}>Cancel</button>
-            <button type="submit" className="px-6 py-2 rounded bg-[#c69909] hover:bg-yellow-500 text-black font-semibold" disabled={loading}>
-              {loading ? "Creating..." : "Create User"}
+            <button type="button" onClick={onClose} className="px-6 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-semibold">Cancel</button>
+            <button type="submit" className="px-6 py-2 rounded bg-[#c69909] hover:bg-yellow-500 text-black font-semibold">
+              Create User
             </button>
           </div>
         </form>

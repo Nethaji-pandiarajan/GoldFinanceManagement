@@ -18,7 +18,7 @@ exports.getDashboardStats = async (req, res) => {
             client.query('SELECT COUNT(*) FROM datamanagement.customers'),
             client.query('SELECT COUNT(*), SUM(net_amount_issued) FROM datamanagement.loan_details'),
             client.query('SELECT SUM(interest_amount_paid) FROM datamanagement.loan_payments'),
-            client.query('SELECT SUM(total_invested) FROM datamanagement.users'),
+            client.query('SELECT current_balance FROM datamanagement.investment_history ORDER BY id DESC LIMIT 1'),
             client.query("SELECT today_rate FROM datamanagement.gold_rate WHERE karat_name = '22K'"),
             
             client.query(`
@@ -47,7 +47,7 @@ exports.getDashboardStats = async (req, res) => {
             totalLoans: loanStatsRes.rows[0].count || '0',
             totalLoanAmount: loanStatsRes.rows[0].sum || '0',
             totalInterest: totalInterestRes.rows[0].sum || '0',
-            totalInvestment: totalInvestmentRes.rows[0].sum || '0',
+            totalInvestment: totalInvestmentRes.rows.length > 0 ? totalInvestmentRes.rows[0].current_balance : '0',
             goldRate22k: goldRate22kRes.rows[0]?.today_rate || '0',
             monthlyLoanData: monthlyLoansRes.rows,
             weeklyCustomerData: weeklyCustomersRes.rows
