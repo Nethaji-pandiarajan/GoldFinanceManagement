@@ -4,7 +4,7 @@ exports.getAllOrnaments = async (req, res) => {
   logger.info(`[ORNAMENT] Request received to GET all ornaments.`);
   try {
     const result = await db.query(
-      "SELECT ornament_id, ornament_type, ornament_name, material_type, description FROM datamanagement.ornament_details ORDER BY created_on DESC"
+      "SELECT ornament_id, ornament_type, ornament_name, material_type, COALESCE(description, 'N/A') AS description FROM datamanagement.ornament_details ORDER BY created_on DESC"
     );
     logger.info(`[ORNAMENT] Successfully retrieved ${result.rows.length} ornaments.`);
     res.json(result.rows);

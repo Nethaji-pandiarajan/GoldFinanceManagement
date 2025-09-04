@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-dt';
 
-const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
+const API_BASE_URL = "http://localhost:4000"
 DataTable.use(DT);
 
 export default function ClosedLoans() {

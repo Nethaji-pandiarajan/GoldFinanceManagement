@@ -13,7 +13,7 @@ import {
   UsersIcon,
 } from "@heroicons/react/24/solid";
 
-const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
+const API_BASE_URL = "http://localhost:4000"
 
 function SignupPage() {
   const [formData, setFormData] = useState({

@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "E:\\GoldFinanceManagement\\backend\\logs\\.f02c08811c6dcb261890c7333890110987a647fa-audit.json",
+    "files": [
+        {
+            "date": 1757014088894,
+            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-09-05.log",
+            "hash": "9e14502816cc71b89921c3c61fe572472592937f2325000f3fe74e75beb18210"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -16,6 +16,7 @@ import ClosedLoans from '../ClosedLoans';
 import TotalInvestments from "../TotalInvestments";
 import ProfilePage from "../ProfilePage";
 import Schemes from "../Schemes";
+import UserManagement from "../UserManagement";
 interface User {
   id: number;
   username: string;
@@ -49,6 +50,8 @@ export default function MainLayout({ onLogout, user }: MainLayoutProps) {
         return <GoldRateDetails />;
       case "Dashboard":
         return <Dashboard />;
+      case "Manage Users":
+        return <UserManagement />;
       case "Processing Amount":
         return <ProcessingAmount />;
       case 'Pending Loans':

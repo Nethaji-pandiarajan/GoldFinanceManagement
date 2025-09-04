@@ -24,6 +24,8 @@ const otpRoutes = require("./routes/otp.routes.js");
 const schemeRoutes = require("./routes/scheme.routes.js");
 const { startInterestUpdateJob } = require('./services/interestUpdate.service');
 const machineRoutes = require("./routes/machine.routes.js");
+const adminRoutes = require("./routes/admin.routes.js");
+const investmentRoutes = require("./routes/investment.routes.js");
 app.use("/api/auth", authRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/ornaments", ornamentRoutes);
@@ -37,6 +39,8 @@ app.use("/api/processing", processingRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/schemes", schemeRoutes);
 app.use("/api/machines", machineRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/investments", investmentRoutes);
 app.listen(PORT, "0.0.0.0" ,() => {
   console.log(`✅ Backend server is running on http://localhost:${PORT}`);
   startInterestUpdateJob();

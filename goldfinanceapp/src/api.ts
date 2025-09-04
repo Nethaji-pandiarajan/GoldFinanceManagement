@@ -7,7 +7,7 @@ export const setGlobalAlert = (alertSetter: typeof globalAlert) => {
 };
 
 const api = axios.create({
-  baseURL: "https://goldfinancemanagement.onrender.com",
+  baseURL: "http://localhost:4000",
 });
 
 api.interceptors.request.use(

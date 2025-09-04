@@ -5,7 +5,7 @@ exports.getAllKarats = async (req, res) => {
   logger.info(`[KARAT] Request received to GET all karats.`);
   try {
     const result = await db.query(
-      "SELECT karat_id, karat_name, description , purity FROM datamanagement.gold_karat_details ORDER BY created_on DESC"
+      "SELECT karat_id, karat_name, COALESCE(description, 'N/A') AS description, purity FROM datamanagement.gold_karat_details ORDER BY created_on DESC"
     );
     logger.info(`[KARAT] Successfully retrieved ${result.rows.length} karat details.`);
     res.json(result.rows);

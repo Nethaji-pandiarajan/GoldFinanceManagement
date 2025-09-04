@@ -3,6 +3,37 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../db");
 const logger = require("../config/logger");
+exports.verifyPassword = async (req, res) => {
+    const { password } = req.body;
+    const userId = req.user.id;
+    logger.info(`[AUTH] Password verification attempt for user ID: ${userId}.`);
+    if (!password) {
+        return res.status(400).json({ message: "Password is required for verification." });
+    }
+    try {
+        const userResult = await db.query("SELECT password FROM datamanagement.users WHERE user_id = $1", [userId]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: "User not found." });
+        }
+        
+        const hashedPassword = userResult.rows[0].password;
+        const isMatch = await bcrypt.compare(password, hashedPassword);
+
+        if (!isMatch) {
+            logger.warn(`[AUTH] Password verification FAILED for user ID: ${userId}.`);
+            return res.status(401).json({ message: "Incorrect password." });
+        }
+
+        logger.info(`[AUTH] Password verification SUCCESSFUL for user ID: ${userId}.`);
+        res.json({ success: true, message: "Password verified." });
+
+    } catch (error) {
+        logger.error(`[AUTH] Error during password verification for user ID ${userId}: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during password verification." });
+    }
+};
+
 exports.verifyLicense = async (req, res) => {
     const { cpu_brand, mac_address } = req.body;
     
