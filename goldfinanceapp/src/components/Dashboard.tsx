@@ -3,7 +3,7 @@ import api from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
 import { UserGroupIcon, DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ScaleIcon } from "@heroicons/react/24/outline";
 
-const API_BASE_URL = "http://localhost:4000"
+const API_BASE_URL = "https://goldfinancemanagementtesting.onrender.com"
 
 const StatCard = ({ title, value, Icon, iconBgColor, iconColor, isLoading }: any) => (
   <div className="bg-[#111315] p-4 rounded-lg shadow-lg flex items-center space-x-4">

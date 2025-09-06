@@ -8,7 +8,7 @@ import AlertNotification from "./AlertNotification";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import ViewOrnamentModal from "./ViewOrnamentModal";
-const API_BASE_URL = "http://localhost:4000"
+const API_BASE_URL = "https://goldfinancemanagementtesting.onrender.com"
 DataTable.use(DT);
 
 type AlertState = {
