@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import api from "../api";
 import { v4 as uuidv4 } from "uuid";
+import OrnamentImageViewerModal from "./OrnamentImageViewerModal";
 import {
   PlusIcon,
   TrashIcon,
-  // XCircleIcon,
   EyeIcon,
-  CheckIcon,
+  ArrowUpTrayIcon,
 } from "@heroicons/react/24/solid";
 import AlertNotification from "./AlertNotification";
 import SearchableDropdown from "./SearchableDropdown";
@@ -150,6 +150,7 @@ export default function NewLoanApplication() {
     initialOrnamentRow(),
   ]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [isImageViewerOpen, setImageViewerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [customerDisplayDetails, setCustomerDisplayDetails] =
     useState<CustomerDisplayDetails | null>(null);
@@ -294,6 +295,10 @@ export default function NewLoanApplication() {
   ) => {
     setCurrentAddress(e.target.value);
     setUsePermanentAddress(false);
+  };
+  const handleReupload = () => {
+    setImageViewerOpen(false); 
+    setImageUploadOpen(true);
   };
   const ornamentsWithValue = useMemo(() => {
     return ornamentRows.map((ornament) => {
@@ -622,6 +627,13 @@ export default function NewLoanApplication() {
 
   return (
     <div className="relative">
+      {isImageViewerOpen && editingOrnamentIndex !== null && ornamentRows[editingOrnamentIndex]?.image_preview && (
+          <OrnamentImageViewerModal
+              imageUrl={ornamentRows[editingOrnamentIndex].image_preview!}
+              onClose={() => setImageViewerOpen(false)}
+              onReupload={handleReupload}
+          />
+      )}
       {alert?.show && (
         <AlertNotification {...alert} onClose={() => setAlert(null)} />
       )}
@@ -848,123 +860,6 @@ export default function NewLoanApplication() {
               </div>
             </div>
           </section>
-          {/* <section>
-            <SectionHeader title="Customer Details" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-              <div className="md:col-span-2 space-y-4">
-                <div>
-                  <label className={labelStyle}>Customer Name & Phone*</label>
-                  <SearchableDropdown
-                    items={customers}
-                    selected={selectedCustomer}
-                    setSelected={setSelectedCustomer}
-                    placeholder="Search customers..."
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className={labelStyle}>Gender</label>
-                    <div
-                      className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}
-                    >
-                      {customerDisplayDetails?.gender || "..."}
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Date of Birth</label>
-                    <div
-                      className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}
-                    >
-                      {customerDisplayDetails?.date_of_birth
-                        ? new Date(
-                            customerDisplayDetails.date_of_birth
-                          ).toLocaleDateString()
-                        : "..."}
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Nominee</label>
-                    <div
-                      className={`${inputStyle} bg-black/20 flex items-center text-gray-400 truncate`}
-                      title={
-                        customerDisplayDetails
-                          ? `${customerDisplayDetails.nominee_name} (${customerDisplayDetails.nominee_mobile})`
-                          : ""
-                      }
-                    >
-                      {customerDisplayDetails
-                        ? `${customerDisplayDetails.nominee_name}`
-                        : "..."}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col items-center justify-center">
-                <label className={labelStyle}>Customer Image</label>
-                <div className="w-40 h-48 bg-black/20 rounded-md flex items-center justify-center border border-gray-700">
-                  {customerDisplayDetails?.customer_image ? (
-                    <img
-                      src={
-                        bufferToBase64(customerDisplayDetails.customer_image) ??
-                        undefined
-                      }
-                      alt="Customer"
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                  ) : (
-                    <span className="text-gray-500 text-sm">
-                      Select Customer
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-              <div>
-                <label className={labelStyle}>Permanent Address</label>
-                <textarea
-                  value={customerDisplayDetails?.address || "..."}
-                  className={`${inputStyle} bg-black/20 cursor-not-allowed`}
-                  readOnly
-                  rows={3}
-                ></textarea>
-              </div>
-              <div>
-                <div className="flex justify-between items-center">
-                  <label className={labelStyle}>Current Address</label>
-                  <div className="flex items-center mb-2">
-                    <input
-                      id="sameAsPermanent"
-                      type="checkbox"
-                      checked={usePermanentAddress}
-                      onChange={(e) => setUsePermanentAddress(e.target.checked)}
-                      className="h-4 w-4 rounded bg-[#1f2628] border-gray-600 text-[#c69909] focus:ring-[#c69909]"
-                      disabled={!selectedCustomer}
-                    />
-                    <label
-                      htmlFor="sameAsPermanent"
-                      className="ml-2 text-sm text-gray-300"
-                    >
-                      Same as permanent
-                    </label>
-                  </div>
-                </div>
-                <textarea
-                  value={currentAddress}
-                  onChange={handleCurrentAddressChange}
-                  className={inputStyle}
-                  rows={3}
-                  placeholder={
-                    selectedCustomer
-                      ? "Enter current address..."
-                      : "Select a customer first"
-                  }
-                  disabled={!selectedCustomer}
-                ></textarea>
-              </div>
-            </div>
-          </section> */}
-
           <section>
             <SectionHeader title="Ornament Details" />
             <div className="space-y-4 mb-6">
@@ -982,7 +877,7 @@ export default function NewLoanApplication() {
                   key={ornament.key}
                   className="p-4 border border-gray-700/50 rounded-lg"
                 >
-                  <div className="relative grid grid-cols-1 md:grid-cols-[0.5fr_0.5fr_0.7fr_0.5fr_0.2fr_0.5fr_0.5fr_0.5fr_0.5fr_0.5fr] gap-x-2 items-center">
+                  <div className="relative grid grid-cols-1 md:grid-cols-[0.5fr_0.5fr_0.7fr_0.5fr_0.2fr_0.5fr_0.5fr_0.5fr_0.5fr_0.2fr] gap-x-2 items-center">
                     {/* <button
                           type="button"
                           onClick={() => clearOrnamentRow(index)}
@@ -1182,49 +1077,41 @@ export default function NewLoanApplication() {
                     </div>
                     <div>
                       <label className={labelStyle}>Image*</label>
-                      <div className="flex items-center gap-2 ">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingOrnamentIndex(index);
-                            setImageUploadOpen(true);
-                          }}
-                          className={clsx(
-                            "h-12 w-full rounded text-sm transition-colors flex items-center justify-center gap-2",
-                            ornament.image_preview
-                              ? "bg-green-500/20 border-green-500 text-green-300"
-                              : "bg-[#1f2628] hover:border-[#c69909] border border-transparent text-gray-300"
-                          )}
-                        >
-                          {ornament.image_preview ? (
-                            <>
-                              <CheckIcon className="h-5 w-5" />
-                              {/* <span>Uploaded</span> */}
-                            </>
-                          ) : (
-                            <span>Select Image</span>
-                          )}
-                        </button>
-                        {ornament.image_preview && (
+                      <div className="flex items-center justify-center gap-2 h-12">
+                        {ornament.image_preview ? (
                           <button
                             type="button"
-                            title="Preview Image"
-                            onClick={() =>
-                              setViewingImage(ornament.image_preview)
-                            }
-                            className="p-2 text-blue-400 hover:text-white rounded-full hover:bg-blue-500/20"
+                            title="View/Re-upload Image"
+                            onClick={() => {
+                              setEditingOrnamentIndex(index);
+                              setImageViewerOpen(true);
+                            }}
+                            className="p-3 text-blue-400 hover:text-white rounded-full bg-[#1f2628] hover:bg-blue-500/20 transition-colors"
                           >
-                            <EyeIcon className="h-5 w-5" />
+                            <EyeIcon className="h-6 w-6" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            title="Upload Image"
+                            onClick={() => {
+                              setEditingOrnamentIndex(index);
+                              setImageUploadOpen(true);
+                            }}
+                            className="p-3 text-gray-400 hover:text-white rounded-full bg-[#1f2628] hover:bg-gray-700 transition-colors"
+                          >
+                            <ArrowUpTrayIcon className="h-6 w-6" />
                           </button>
                         )}
+
                         {ornamentRows.length > 1 && (
                           <button
                             type="button"
                             title="Remove row"
                             onClick={() => removeOrnamentRow(index)}
-                            className="p-2 text-red-400 hover:text-white rounded-full hover:bg-red-500/10"
+                            className="p-3 text-red-500 hover:text-white rounded-full bg-[#1f2628] hover:bg-red-500/20 transition-colors"
                           >
-                            <TrashIcon className="h-5 w-5" />
+                            <TrashIcon className="h-6 w-6" />
                           </button>
                         )}
                       </div>

@@ -21,10 +21,18 @@ input[type=number]::-webkit-outer-spin-button {
   margin: 0;
 }
 
-/* For Firefox (optional, if anyone uses it) */
 input[type=number] {
   appearance: none;
   -moz-appearance: textfield;
+}
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+input[type="password"]::-webkit-reveal {
+  display: none !important;
 }
 
 div.dt-container .dt-search label,
