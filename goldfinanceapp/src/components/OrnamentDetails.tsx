@@ -1,14 +1,22 @@
 // src/components/OrnamentDetails.tsx
-import _React, { useState, useEffect, useRef } from "react";
+import _React, { useState, useEffect, useRef, Fragment } from "react";
 import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
 import AddOrnamentForm from "./AddOrnamentForm";
 import AlertNotification from "./AlertNotification";
 import ConfirmationDialog from "./ConfirmationDialog";
-import { PlusIcon } from "@heroicons/react/24/solid";
+import {
+  PlusIcon,
+  ArrowDownTrayIcon,
+  ChevronDownIcon,
+} from "@heroicons/react/24/solid";
 import ViewOrnamentModal from "./ViewOrnamentModal";
-const API_BASE_URL = "http://localhost:4000"
+import { Menu, Transition } from "@headlessui/react";
+import * as XLSX from "xlsx";
+import { save } from "@tauri-apps/api/dialog";
+import { writeTextFile, writeBinaryFile } from "@tauri-apps/api/fs";
+const API_BASE_URL = "http://localhost:4000";
 DataTable.use(DT);
 
 type AlertState = {
@@ -24,7 +32,81 @@ export default function OrnamentDetails() {
   const [viewData, setViewData] = useState<any | null>(null);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const tableRef = useRef<any>();
+  const handleOrnamentDownload = async (format: "csv" | "xlsx") => {
+    try {
+      const response = await api.get("/api/ornaments/export");
+      const data = response.data;
 
+      if (!data || data.length === 0) {
+        setAlert({
+          show: true,
+          type: "alert",
+          message: "No ornament data to export.",
+        });
+        return;
+      }
+
+      if (format === "csv") {
+        const headers = [
+          "ornament_id",
+          "ornament_type",
+          "ornament_name",
+          "description",
+          "created_on",
+          "updated_on",
+          "material_type",
+        ];
+        const csvContent = [
+          headers.join(","),
+          ...data.map((row: any) =>
+            headers.map((header) => `"${row[header] || ""}"`).join(",")
+          ),
+        ].join("\n");
+
+        const filePath = await save({
+          defaultPath: "ornament_details.csv",
+          filters: [{ name: "CSV", extensions: ["csv"] }],
+        });
+        if (filePath)
+          await writeTextFile({ path: filePath, contents: csvContent });
+      } else if (format === "xlsx") {
+        const formattedData = data.map((row: any) => ({
+          "Ornament ID": row.ornament_id,
+          "Ornament Type": row.ornament_type,
+          "Ornament Name": row.ornament_name,
+          "Material Type": row.material_type,
+          Description: row.description,
+          "Created On": new Date(row.created_on).toLocaleString(),
+          "Updated On": new Date(row.updated_on).toLocaleString(),
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Ornaments");
+
+        const buffer = XLSX.write(workbook, {
+          bookType: "xlsx",
+          type: "array",
+        });
+        const filePath = await save({
+          defaultPath: "ornament_details.xlsx",
+          filters: [{ name: "Excel", extensions: ["xlsx"] }],
+        });
+        if (filePath)
+          await writeBinaryFile({ path: filePath, contents: buffer });
+      }
+      setAlert({
+        show: true,
+        type: "success",
+        message: "File saved successfully!",
+      });
+    } catch (error) {
+      setAlert({
+        show: true,
+        type: "error",
+        message: "Failed to export file.",
+      });
+    }
+  };
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     try {
@@ -81,8 +163,8 @@ export default function OrnamentDetails() {
     url: `${API_BASE_URL}/api/ornaments`,
     dataSrc: "",
     headers: {
-      'x-auth-token': localStorage.getItem('authToken') || ''
-    }
+      "x-auth-token": localStorage.getItem("authToken") || "",
+    },
   };
   const tableColumns = [
     {
@@ -92,7 +174,7 @@ export default function OrnamentDetails() {
     },
     { title: "Ornament Type", data: "ornament_type" },
     { title: "Ornament Name", data: "ornament_name" },
-    { title: 'Material Type', data: 'material_type' },
+    { title: "Material Type", data: "material_type" },
     { title: "Description", data: "description" },
     {
       title: "Actions",
@@ -175,13 +257,65 @@ export default function OrnamentDetails() {
           <h1 className="text-2xl font-bold text-[#c69909]">
             Ornament Details
           </h1>
-          <button
-            onClick={() => setAddModalOpen(true)}
-            className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Add Ornament
-          </button>
+          <div className="flex items-center space-x-4">
+            <Menu as="div" className="relative inline-block text-left">
+              <div>
+                <Menu.Button className="inline-flex w-full justify-center items-center gap-x-1.5 rounded-md bg-gray-700/50 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600">
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                  Export
+                  <ChevronDownIcon
+                    className="-mr-1 h-5 w-5 text-gray-400"
+                    aria-hidden="true"
+                  />
+                </Menu.Button>
+              </div>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-[#1f2628] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="py-1">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => handleOrnamentDownload("csv")}
+                          className={`${
+                            active ? "bg-[#111315] text-white" : "text-gray-300"
+                          } block w-full text-left px-4 py-2 text-sm`}
+                        >
+                          CSV
+                        </button>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => handleOrnamentDownload("xlsx")}
+                          className={`${
+                            active ? "bg-[#111315] text-white" : "text-gray-300"
+                          } block w-full text-left px-4 py-2 text-sm`}
+                        >
+                          XLSX
+                        </button>
+                      )}
+                    </Menu.Item>
+                  </div>
+                </Menu.Items>
+              </Transition>
+            </Menu>
+            <button
+              onClick={() => setAddModalOpen(true)}
+              className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Add Ornament
+            </button>
+          </div>
         </div>
         <DataTable
           id="ornamentTable"
@@ -195,7 +329,7 @@ export default function OrnamentDetails() {
               <th>S.No</th>
               <th>Ornament Type</th>
               <th>Ornament Name</th>
-              <th>Material Type</th> 
+              <th>Material Type</th>
               <th>Description</th>
               <th>Actions</th>
             </tr>
