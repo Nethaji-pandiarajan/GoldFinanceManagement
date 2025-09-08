@@ -17,6 +17,7 @@ import TotalInvestments from "../TotalInvestments";
 import ProfilePage from "../ProfilePage";
 import Schemes from "../Schemes";
 import UserManagement from "../UserManagement";
+import SettingsPage from "../SettingsPage";
 interface User {
   id: number;
   username: string;
@@ -62,6 +63,8 @@ export default function MainLayout({ onLogout, user }: MainLayoutProps) {
         return <ProfilePage />;
       case "Scheme details":
         return <Schemes />;
+      case 'Settings':
+        return <SettingsPage />;
       default:
         return <Dashboard />;
     }

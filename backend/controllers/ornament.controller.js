@@ -126,3 +126,14 @@ exports.getAllOrnamentsForLoan = async (req, res) => {
     res.status(500).json({ message: "Server error." });
   }
 };
+
+exports.exportAllOrnaments = async (req, res) => {
+    logger.info(`[ORNAMENT] Request to EXPORT all ornament details.`);
+    try {
+        const result = await db.query("SELECT * FROM datamanagement.ornament_details ORDER BY ornament_id ASC");
+        res.json(result.rows);
+    } catch (error) {
+        logger.error(`[ORNAMENT] Error exporting ornaments: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during ornament export." });
+    }
+};

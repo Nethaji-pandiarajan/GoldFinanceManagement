@@ -1,13 +1,17 @@
 // src/components/CustomerDetails.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef ,Fragment} from "react";
 import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
+import * as XLSX from 'xlsx';
+import { save } from "@tauri-apps/api/dialog"; 
+import { writeTextFile, writeBinaryFile } from "@tauri-apps/api/fs";
 import AddCustomerForm from "./AddCustomerForm";
 import ViewCustomerModal from "./ViewCustomerModal";
-import { PlusIcon } from "@heroicons/react/24/solid";
+import { PlusIcon ,ArrowDownTrayIcon, ChevronDownIcon} from "@heroicons/react/24/solid";
 import AlertNotification from "./AlertNotification";
 import ConfirmationDialog from "./ConfirmationDialog";
+import { Menu, Transition } from "@headlessui/react";
 const API_BASE_URL = "http://localhost:4000"
 DataTable.use(DT);
 type AlertState = {
@@ -22,6 +26,90 @@ export default function CustomerDetails() {
   const [editData, setEditData] = useState<any | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
   const tableRef = useRef<any>();
+  const generateCSVContent = (data: any[]) => {
+    const headers = [
+        "customer_id", "customer_name", "email", "phone_number", "gender", 
+        "description", "address", "government_proof", "proof_id", "date_of_birth", 
+        "current_address", "nominee_id", "nominee_name", "nominee_relationship", 
+        "nominee_mobile", "nominee_age", "nominee_gender"
+    ];
+    const headerRow = headers.join(',');
+    const dataRows = data.map(customer => {
+        const row = headers.map(header => {
+            let value = customer[header];
+            if (header === 'date_of_birth' && value) {
+                return new Date(value).toLocaleDateString('en-CA');
+            }
+            return value;
+        });
+        return row.map(val => `"${val || ''}"`).join(',');
+    });
+    return [headerRow, ...dataRows].join('\n');
+  };
+  const generateXLSXBuffer = (data: any[]) => {
+        const formattedData = data.map(c => ({
+            "Customer ID": c.customer_id,
+            "Name": c.customer_name,
+            "Email": c.email,
+            "Phone": c.phone_number,
+            "Gender": c.gender,
+            "Description": c.description,
+            "Permanent Address": c.address,
+            "Govt Proof": c.government_proof,
+            "Proof ID": c.proof_id,
+            "Date of Birth": c.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString('en-CA') : '',
+            "Current Address": c.current_address,
+            "Nominee ID": c.nominee_id,
+            "Nominee Name": c.nominee_name,
+            "Nominee Relationship": c.nominee_relationship,
+            "Nominee Mobile": c.nominee_mobile,
+            "Nominee Age": c.nominee_age,
+            "Nominee Gender": c.nominee_gender,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
+        
+        const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        return buffer;
+    };
+   const handleDownload = async (format: 'csv' | 'xlsx') => {
+        try {
+            const response = await api.get('/api/customers/export');
+            const allCustomerData = response.data;
+
+            if (!allCustomerData || allCustomerData.length === 0) {
+                setAlert({ show: true, type: 'alert', message: 'No customer data available to export.' });
+                return;
+            }
+
+            if (format === 'csv') {
+                const content = generateCSVContent(allCustomerData);
+                const filePath = await save({
+                    defaultPath: 'all_customers.csv',
+                    filters: [{ name: 'CSV File', extensions: ['csv'] }]
+                });
+                if (filePath) {
+                    await writeTextFile({ path: filePath, contents: content });
+                    setAlert({ show: true, type: 'success', message: 'CSV file saved successfully!' });
+                }
+            } else if (format === 'xlsx') {
+                const buffer = generateXLSXBuffer(allCustomerData);
+                const filePath = await save({
+                    defaultPath: 'all_customers.xlsx',
+                    filters: [{ name: 'Excel Workbook', extensions: ['xlsx'] }]
+                });
+                if (filePath) {
+                    await writeBinaryFile({ path: filePath, contents: buffer });
+                    setAlert({ show: true, type: 'success', message: 'XLSX file saved successfully!' });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to export file:", error);
+            setAlert({ show: true, type: 'error', message: 'Failed to export the file.' });
+        }
+    };
   const handleConfirmDelete = async () => {
     if (!customerToDelete) return;
     try {
@@ -206,6 +294,37 @@ export default function CustomerDetails() {
           <h1 className="text-2xl font-bold mb-20 text-[#c69909]">
             Customer Details
           </h1>
+          <div className="flex items-center space-x-4">
+            <Menu as="div" className="relative inline-block text-left">
+              <div>
+                <Menu.Button className="inline-flex w-full justify-center items-center gap-x-1.5 rounded-md bg-gray-700/50 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600">
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                  Export
+                  <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
+                </Menu.Button>
+              </div>
+
+              <Transition as={Fragment} >
+                <Menu.Items className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-[#1f2628] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="py-1">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button onClick={() => handleDownload('csv')} className={`${active ? 'bg-[#111315] text-white' : 'text-gray-300'} block w-full text-left px-4 py-2 text-sm`}>
+                          CSV
+                        </button>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button onClick={() => handleDownload('xlsx')} className={`${active ? 'bg-[#111315] text-white' : 'text-gray-300'} block w-full text-left px-4 py-2 text-sm`}>
+                          XLSX
+                        </button>
+                      )}
+                    </Menu.Item>
+                  </div>
+                </Menu.Items>
+              </Transition>
+            </Menu>
           <button
             onClick={() => setAddModalOpen(true)}
             className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors"
@@ -213,6 +332,7 @@ export default function CustomerDetails() {
             <PlusIcon className="h-5 w-5 mr-2" />
             Add Customer
           </button>
+          </div>
         </div>
 
         <DataTable

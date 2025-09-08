@@ -462,3 +462,42 @@ exports.sendPaymentReminder = async (req, res) => {
         res.status(500).json({ message: "Failed to send payment reminder." });
     }
 };
+
+exports.exportAllLoanData = async (req, res) => {
+    logger.info(`[LOAN] Request to EXPORT ALL loan data (details, ornaments, payments).`);
+    const client = await db.pool.connect();
+    try {
+        const loanDetailsQuery = `
+            SELECT ld.*, c.customer_name 
+            FROM datamanagement.loan_details ld
+            JOIN datamanagement.customers c ON ld.customer_id = c.customer_id
+            ORDER BY ld.loan_id ASC;
+        `;
+        
+        const ornamentDetailsQuery = `
+            SELECT * FROM datamanagement.loan_ornament_details ORDER BY loan_id ASC, loan_ornament_id ASC;
+        `;
+
+        const paymentDetailsQuery = `
+            SELECT * FROM datamanagement.loan_payments ORDER BY loan_id ASC, payment_month ASC;
+        `;
+
+        const [loanDetailsResult, ornamentDetailsResult, paymentDetailsResult] = await Promise.all([
+            client.query(loanDetailsQuery),
+            client.query(ornamentDetailsQuery),
+            client.query(paymentDetailsQuery)
+        ]);
+
+        res.json({
+            loan_details: loanDetailsResult.rows,
+            ornament_details: ornamentDetailsResult.rows,
+            payment_details: paymentDetailsResult.rows
+        });
+
+    } catch (error) {
+        logger.error(`[LOAN] Error exporting all loan data: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during full loan data export." });
+    } finally {
+        client.release();
+    }
+};

@@ -6,6 +6,7 @@ import {
   ChevronDownIcon,
   UserPlusIcon,
   UsersIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/solid";
 import ConfirmationDialog from "./ConfirmationDialog";
 import clsx from "clsx";
@@ -162,6 +163,16 @@ export default function TopNavbar({ onLogout, setActiveItem , user}: TopNavbarPr
                 >
                   <UserCircleIcon className="h-5 w-5 mr-3" />
                   My Profile
+                </button>
+                <button
+                    onClick={() => {
+                        setActiveItem('Settings');
+                        setAccountDropdownOpen(false);
+                    }}
+                    className="flex items-center w-full text-left px-4 py-2 text-sm text-[#c69909] hover:bg-[#111315] hover:text-white"
+                >
+                    <Cog6ToothIcon className="h-5 w-5 mr-3" />
+                    Settings
                 </button>
                 <button
                   onClick={handleLogoutClick}

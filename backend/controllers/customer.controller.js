@@ -356,3 +356,40 @@ exports.checkPhone = async (req, res) => {
       .json({ message: "Server error while checking phone number." });
   }
 };
+exports.getAllCustomersForExport = async (req, res) => {
+    logger.info(`[CUSTOMER] Request received to GET all customer data for export.`);
+    try {
+        const query = `
+          SELECT 
+              c.customer_id,
+              c.customer_uuid,
+              c.customer_name,
+              c.email,
+              c.phone AS phone_number,
+              c.gender,
+              c.description,
+              c.address,
+              c.government_proof,
+              c.proof_id,
+              c.date_of_birth,
+              c.current_address,
+              c.nominee_id,
+              n.nominee_name,
+              n.nominee_relationship,
+              n.nominee_mobile,
+              n.nominee_age,
+              n.nominee_gender
+          FROM 
+              datamanagement.customers c
+          LEFT JOIN 
+              datamanagement.nominees n ON c.nominee_id = n.nominee_id
+          ORDER BY c.customer_id ASC;
+        `;
+        const customers = await db.query(query);
+        logger.info(`[CUSTOMER] Successfully retrieved ${customers.rows.length} full customer records for export.`);
+        res.json(customers.rows);
+    } catch (error) {
+        logger.error(`[CUSTOMER] Error fetching customers for export: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error while fetching customer data for export." });
+    }
+};

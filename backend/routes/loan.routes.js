@@ -11,7 +11,7 @@ router.get("/calculation-data", authMiddleware, loanController.getCalculationDat
 
 router.get("/", authMiddleware, loanController.getAllLoans);
 router.post("/", authMiddleware, upload.loanImages, loanController.createLoan);
-
+router.get("/export-all", authMiddleware, loanController.exportAllLoanData);
 router.get("/:id/next-payment", authMiddleware, loanController.getNextPaymentDue); 
 router.get("/:id", authMiddleware, loanController.getLoanById);
 router.delete("/:id", authMiddleware, loanController.deleteLoanById);
