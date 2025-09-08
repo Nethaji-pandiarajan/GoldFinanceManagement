@@ -330,6 +330,7 @@ exports.getPendingLoans = async (req, res) => {
           SELECT
             ld.loan_id,
             c.customer_name,
+            s.scheme_name,
             c.phone,
             ld.net_amount_issued AS total_principal_amount, -- Renamed for clarity
             ld.principal_amount_paid,
@@ -342,6 +343,8 @@ exports.getPendingLoans = async (req, res) => {
             datamanagement.loan_details ld
           JOIN 
             datamanagement.customers c ON ld.customer_id = c.customer_id
+          LEFT JOIN
+            datamanagement.scheme_details s ON ld.scheme_id = s.scheme_id
           WHERE 
             ld.completion_status = 'Pending'
           ORDER BY 
