@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate,
 } from "react-router-dom";
 import api from "./api";
 import { jwtDecode } from "jwt-decode";
@@ -30,47 +31,62 @@ type DecodedToken = {
   exp: number;
 };
 type LicenseStatus = 'checking' | 'licensed' | 'unlicensed';
-function App() {
+function AppContent() {
   const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [alert, setAlert] = useState<any>(null);
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>('checking');
   const inactivityTimerRef = useRef<number | null>(null);
   const INACTIVITY_TIMEOUT_MS =  15 * 60 * 1000;
-  const logoutDueToInactivity = useCallback(() => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
+ const handleLogout = useCallback(() => {
+    localStorage.removeItem("authToken");
+    setUser(null);
+    navigate('/login');
+  }, [navigate]);
+
+  const handleLoginSuccess = (token: string) => {
+    localStorage.setItem("authToken", token);
+    try {
+        const decoded = jwtDecode<DecodedToken>(token);
+        setUser(decoded.user);
+        navigate('/mainlayout');
+    } catch (error) {
+        console.error("Failed to decode token:", error);
+        handleLogout();
     }
-    handleLogout();
-    setAlert({
-        show: true,
-        type: 'alert',
-        message: 'You have been logged out due to inactivity.'
-    });
-  }, []); 
-  const resetInactivityTimer = useCallback(() => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-    }
-    inactivityTimerRef.current = setTimeout(logoutDueToInactivity, INACTIVITY_TIMEOUT_MS);
-  }, [logoutDueToInactivity]);
+  };
   useEffect(() => {
     const activityEvents: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'click', 'scroll'];
+    const logoutDueToInactivity = () => {
+        handleLogout();
+        setTimeout(() => {
+            setAlert({
+                show: true,
+                type: 'alert',
+                message: 'You have been logged out due to inactivity.'
+            });
+        }, 100);
+    };
+
+    const resetInactivityTimer = () => {
+        if (inactivityTimerRef.current) {
+            clearTimeout(inactivityTimerRef.current);
+        }
+        inactivityTimerRef.current = window.setTimeout(logoutDueToInactivity, INACTIVITY_TIMEOUT_MS);
+    };
+
     if (user) {
-      resetInactivityTimer();
-      activityEvents.forEach(event => {
-        window.addEventListener(event, resetInactivityTimer);
-      });
+        resetInactivityTimer();
+        activityEvents.forEach(event => window.addEventListener(event, resetInactivityTimer));
     }
     return () => {
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-      activityEvents.forEach(event => {
-        window.removeEventListener(event, resetInactivityTimer);
-      });
+        if (inactivityTimerRef.current) {
+            clearTimeout(inactivityTimerRef.current);
+        }
+        activityEvents.forEach(event => window.removeEventListener(event, resetInactivityTimer));
     };
-  }, [user, resetInactivityTimer]);
+  }, [user, handleLogout]); 
   useEffect(() => {
     const verifyDeviceAndLoad  = async () => {
       const startTime = Date.now();
@@ -90,7 +106,7 @@ function App() {
       
       const status: LicenseStatus = isLicensed ? 'licensed' : 'unlicensed';
       const elapsedTime = Date.now() - startTime;
-      const delayNeeded = 5000 - elapsedTime;
+      const delayNeeded = 2000 - elapsedTime;
       if (delayNeeded > 0) {
         await new Promise(resolve => setTimeout(resolve, delayNeeded));
       }
@@ -120,16 +136,6 @@ function App() {
     verifyDeviceAndLoad();
     setGlobalAlert(setAlert); 
   }, []);
-  const handleLoginSuccess = (token: string) => {
-    localStorage.setItem("authToken", token);
-    const decoded = jwtDecode<DecodedToken>(token);
-    setUser(decoded.user);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    setUser(null);
-  };
   if (licenseStatus === 'checking' || isLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#111315] text-[#c69909]">
@@ -153,11 +159,11 @@ function App() {
   }
 
   return (
-    <Router>
+    <>
+      {alert?.show && <AlertNotification {...alert} onClose={() => setAlert(null)} />}
       <Routes>
         {user ? (
           <>
-           {alert?.show && <AlertNotification {...alert} onClose={() => setAlert(null)} />}
             <Route
               path="/mainlayout"
               element={
@@ -174,8 +180,15 @@ function App() {
           </>
         )}
       </Routes>
-    </Router>
+    </>
   );
 }
 
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
 export default App;
