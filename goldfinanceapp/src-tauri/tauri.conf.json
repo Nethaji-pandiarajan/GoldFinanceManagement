@@ -5,7 +5,7 @@
     "devPath": "http://localhost:1420",
     "distDir": "../dist"
   },
-  "package": { "productName": "goldfinanceapp", "version": "0.1.0" },
+  "package": { "productName": "Maya Gold Finance", "version": "2.0.0" },
   "tauri": {
     "allowlist": {
       "all": false,
@@ -15,10 +15,10 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.org.goldfinanceapp",
+      "identifier": "com.org.mayagoldfinance",
       "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
     },
     "security": { "csp": null },
-    "windows": [{ "fullscreen": false, "resizable": true, "title": "goldfinanceapp", "width": 800, "height": 600 }]
+    "windows": [{ "fullscreen": false, "resizable": true, "title": "Maya Gold Finance", "width": 800, "height": 600 }]
   }
 }
