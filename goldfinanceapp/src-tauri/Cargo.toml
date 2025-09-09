@@ -1,7 +1,7 @@
 [package]
 name = "goldfinanceapp"
-version = "0.1.0"
-description = "A Tauri App"
+version = "2.0.0"
+description = "A gold loan management software build specifically for Maya Gold Finance"
 authors = ["you"]
 edition = "2021"
 
