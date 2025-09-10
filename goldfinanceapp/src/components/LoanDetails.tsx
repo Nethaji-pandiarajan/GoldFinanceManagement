@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef , Fragment} from "react";
-import { Menu, Transition } from "@headlessui/react";
+import { useState, useEffect, useRef } from "react";
 import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
-import { PlusIcon,ArrowDownTrayIcon, ChevronDownIcon  } from "@heroicons/react/24/solid";
+import { PlusIcon,ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 import AlertNotification from "./AlertNotification";
 import ViewLoanModal from "./ViewLoanModal";
 import LoanPaymentModal from "./LoanPaymentModal";
@@ -11,7 +10,7 @@ import clsx from 'clsx';
 import ConfirmationDialog from "./ConfirmationDialog";
 import * as XLSX from 'xlsx';
 import { save } from "@tauri-apps/api/dialog";
-import { writeTextFile, writeBinaryFile } from "@tauri-apps/api/fs";
+import { writeBinaryFile } from "@tauri-apps/api/fs";
 const API_BASE_URL = "http://localhost:4000"
 DataTable.use(DT);
 
@@ -82,16 +81,7 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
     dataSrc: "",
     headers: { 'x-auth-token': localStorage.getItem('authToken') || '' }
   };
-  const arrayToCsv = (data: any[]) => {
-    if (data.length === 0) return "";
-    const headers = Object.keys(data[0]);
-    const headerRow = headers.join(',');
-    const dataRows = data.map(row => 
-        headers.map(header => `"${row[header] || ''}"`).join(',')
-    );
-    return [headerRow, ...dataRows].join('\n');
-  };
-  const handleFullDownload = async (format: 'csv' | 'xlsx') => {
+  const handleFullDownload = async () => {
     try {
       const response = await api.get('/api/loans/export-all');
       const { loan_details, ornament_details, payment_details } = response.data;
@@ -100,36 +90,21 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
         setAlert({ show: true, type: 'alert', message: 'No loan data available to export.' });
         return;
       }
-
-      if (format === 'csv') {
-        let csvContent = "--- LOAN DETAILS ---\n";
-        csvContent += arrayToCsv(loan_details);
-        csvContent += "\n\n--- ORNAMENT DETAILS ---\n";
-        csvContent += arrayToCsv(ornament_details);
-        csvContent += "\n\n--- PAYMENT DETAILS ---\n";
-        csvContent += arrayToCsv(payment_details);
-
-        const filePath = await save({ defaultPath: 'all_loan_data.csv', filters: [{ name: 'CSV', extensions: ['csv'] }] });
-        if (filePath) await writeTextFile({ path: filePath, contents: csvContent });
-
-      } else if (format === 'xlsx') {
-        const wb = XLSX.utils.book_new();
-
-        const ws_loans = XLSX.utils.json_to_sheet(loan_details);
-        XLSX.utils.book_append_sheet(wb, ws_loans, "Loan Details");
-
-        const ws_ornaments = XLSX.utils.json_to_sheet(ornament_details);
-        XLSX.utils.book_append_sheet(wb, ws_ornaments, "Ornament Details");
-
-        const ws_payments = XLSX.utils.json_to_sheet(payment_details);
-        XLSX.utils.book_append_sheet(wb, ws_payments, "Payment Details");
-        
-        const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const filePath = await save({ defaultPath: 'all_loan_data.xlsx', filters: [{ name: 'Excel', extensions: ['xlsx'] }] });
-        if (filePath) await writeBinaryFile({ path: filePath, contents: buffer });
+      const wb = XLSX.utils.book_new();
+      const ws_loans = XLSX.utils.json_to_sheet(loan_details);
+      XLSX.utils.book_append_sheet(wb, ws_loans, "Loan Details");
+      const ws_ornaments = XLSX.utils.json_to_sheet(ornament_details);
+      XLSX.utils.book_append_sheet(wb, ws_ornaments, "Ornament Details");
+      const ws_payments = XLSX.utils.json_to_sheet(payment_details);
+      XLSX.utils.book_append_sheet(wb, ws_payments, "Payment Details");
+      const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const filePath = await save({ defaultPath: 'all_loan_data.xlsx', filters: [{ name: 'Excel', extensions: ['xlsx'] }] });
+      if (filePath) {
+          await writeBinaryFile({ path: filePath, contents: buffer });
+          setAlert({ show: true, type: 'success', message: 'File saved successfully!' });
+      } else {
+          setAlert(null);
       }
-
-      setAlert({ show: true, type: 'success', message: 'File saved successfully!' });
     } catch (error) {
       console.error("Failed to export file:", error);
       setAlert({ show: true, type: 'error', message: 'Failed to export the file.' });
@@ -199,35 +174,13 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-[#c69909]">Loan Details</h1>
           <div className="flex items-center space-x-4">
-          <Menu as="div" className="relative inline-block text-left">
-            <div>
-              <Menu.Button className="inline-flex w-full justify-center items-center gap-x-1.5 rounded-md bg-gray-700/50 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600">
-                <ArrowDownTrayIcon className="h-5 w-5" />
-                Export
-                <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" />
-              </Menu.Button>
-            </div>
-            <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
-              <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-[#1f2628] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                <div className="py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button onClick={() => handleFullDownload('csv')} className={`${active ? 'bg-[#111315] text-white' : 'text-gray-300'} block w-full text-left px-4 py-2 text-sm`}>
-                        CSV
-                      </button>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button onClick={() => handleFullDownload('xlsx')} className={`${active ? 'bg-[#111315] text-white' : 'text-gray-300'} block w-full text-left px-4 py-2 text-sm`}>
-                        XLSX
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Transition>
-          </Menu>
+          <button
+              onClick={handleFullDownload}
+              className="inline-flex items-center gap-x-1.5 rounded-md bg-gray-700/50 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600"
+          >
+              <ArrowDownTrayIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+              Export (XLSX)
+          </button>
           <button
             onClick={() => setActiveItem("New Loan Application")}
             className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors"
