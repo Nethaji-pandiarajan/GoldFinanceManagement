@@ -27,6 +27,7 @@ const machineRoutes = require("./routes/machine.routes.js");
 const adminRoutes = require("./routes/admin.routes.js");
 const investmentRoutes = require("./routes/investment.routes.js");
 const logsRoutes = require("./routes/logs.routes.js");
+const expenseRoutes = require("./routes/expense.routes.js");
 app.use("/api/auth", authRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/ornaments", ornamentRoutes);
@@ -43,6 +44,7 @@ app.use("/api/machines", machineRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/investments", investmentRoutes);
 app.use("/api/logs", logsRoutes);
+app.use("/api/expenses", expenseRoutes);
 app.listen(PORT, "0.0.0.0" ,() => {
   console.log(`✅ Backend server is running on http://localhost:${PORT}`);
   startInterestUpdateJob();

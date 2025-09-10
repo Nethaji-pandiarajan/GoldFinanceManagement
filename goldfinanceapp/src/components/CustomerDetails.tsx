@@ -291,7 +291,7 @@ export default function CustomerDetails() {
       )}
       <div className="bg-[#111315] backdrop-blur-md p-6 rounded-lg shadow-lg border border-[#111315]">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold mb-20 text-[#c69909]">
+          <h1 className="text-2xl font-bold mb-4 text-[#c69909]">
             Customer Details
           </h1>
           <div className="flex items-center space-x-4">

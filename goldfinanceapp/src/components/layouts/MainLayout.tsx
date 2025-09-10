@@ -18,6 +18,7 @@ import ProfilePage from "../ProfilePage";
 import Schemes from "../Schemes";
 import UserManagement from "../UserManagement";
 import SettingsPage from "../SettingsPage";
+import ExpenseManagement from "../ExpenseManagement";
 interface User {
   id: number;
   username: string;
@@ -43,6 +44,8 @@ export default function MainLayout({ onLogout, user }: MainLayoutProps) {
         return <CustomerDetails />;
       case "Ornaments Details":
         return <OrnamentDetails />;
+      case "Expense Management":
+        return <ExpenseManagement />;
       case "Gold Karat Details":
         return <GoldKaratDetails />;
       case 'Total Investments':
