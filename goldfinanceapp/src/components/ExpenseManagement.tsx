@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../api";
 import { Disclosure, Transition } from "@headlessui/react";
-import { ChevronUpIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { ChevronDownIcon, PlusIcon } from "@heroicons/react/24/solid";
 import AlertNotification from "./AlertNotification";
 
 export default function ExpenseManagement() {
@@ -90,7 +90,6 @@ export default function ExpenseManagement() {
               </label>
               <input
                 type="text"
-                placeholder="e.g., Office Rent"
                 value={item}
                 onChange={(e) => setItem(e.target.value)}
                 className={inputStyle}
@@ -103,9 +102,14 @@ export default function ExpenseManagement() {
               </label>
               <input
                 type="number"
-                placeholder="1"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                  }
+                }}
                 className={inputStyle}
               />
             </div>
@@ -115,9 +119,14 @@ export default function ExpenseManagement() {
               </label>
               <input
                 type="number"
-                placeholder="0.00"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                  }
+                }}
                 className={inputStyle}
                 required
                 step="0.01"
@@ -162,22 +171,11 @@ export default function ExpenseManagement() {
                         { month: "long", year: "numeric" }
                       )}
                     </span>
-                    <div className="flex items-center gap-4 md:gap-8 text-sm font-semibold">
-                      <span className="text-gray-400">
-                        Month End Balance:{" "}
-                        <span className="text-white">
-                          {formatCurrency(monthData.month_end_balance)}
-                        </span>
-                      </span>
+                    <div className="flex items-center gap-4 text-sm font-semibold">
                       <span className="text-red-400">
-                        Total Expenses:{" "}
-                        {formatCurrency(monthData.total_expenses)}
+                          Total Expenses: {formatCurrency(monthData.total_expenses)}
                       </span>
-                      <ChevronUpIcon
-                        className={`${
-                          open ? "rotate-180 transform" : ""
-                        } h-5 w-5 text-[#c69909] transition-transform`}
-                      />
+                      <ChevronDownIcon className={`${open ? 'rotate-180 transform' : ''} h-5 w-5 text-[#c69909] transition-transform`} />
                     </div>
                   </Disclosure.Button>
 

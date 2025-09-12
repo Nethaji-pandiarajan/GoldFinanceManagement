@@ -363,8 +363,12 @@ export default function NewLoanApplication() {
     const { name, value } = e.target;
     const updatedRows = [...ornamentRows];
     const currentOrnament = { ...updatedRows[index], [name]: value };
-    if (name === "net_weight") {
-      currentOrnament.grams = value;
+    if (name === "gross_weight" || name === "stone_weight") {
+        const gross = parseFloat(currentOrnament.gross_weight) || 0;
+        const stone = parseFloat(currentOrnament.stone_weight) || 0;
+        const net = Math.max(0, gross - stone);
+        currentOrnament.net_weight = net.toFixed(2);
+        currentOrnament.grams = net.toFixed(2);
     }
     updatedRows[index] = currentOrnament;
     setOrnamentRows(updatedRows);
@@ -752,15 +756,8 @@ export default function NewLoanApplication() {
           </section>
           <section>
             <SectionHeader title="Customer Details" />
-            
-            {/* Main container for the top section (inputs + image) */}
             <div className="flex flex-col md:flex-row md:justify-between md:items-start md:gap-8">
-
-              {/* LEFT SIDE: Container for all input fields, configured to grow */}
               <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* --- ROW 1 --- */}
-                {/* Customer Name & Phone */}
                 <div>
                   <label className={labelStyle}>Customer Name & Phone*</label>
                   <SearchableDropdown
@@ -770,17 +767,12 @@ export default function NewLoanApplication() {
                     placeholder="Search customers..."
                   />
                 </div>
-
-                {/* Gender */}
                 <div>
                   <label className={labelStyle}>Gender</label>
                   <div className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}>
                     {customerDisplayDetails?.gender || "..."}
                   </div>
                 </div>
-
-                {/* --- ROW 2 --- */}
-                {/* Date of Birth */}
                 <div>
                   <label className={labelStyle}>Date of Birth</label>
                   <div className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}>
@@ -789,8 +781,6 @@ export default function NewLoanApplication() {
                       : "..."}
                   </div>
                 </div>
-
-                {/* Nominee */}
                 <div>
                   <label className={labelStyle}>Nominee</label>
                   <div
@@ -820,8 +810,6 @@ export default function NewLoanApplication() {
                 </div>
               </div>
             </div>
-
-            {/* --- ROW 3: Addresses --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div>
                 <label className={labelStyle}>Permanent Address</label>
@@ -877,7 +865,7 @@ export default function NewLoanApplication() {
                   key={ornament.key}
                   className="p-4 border border-gray-700/50 rounded-lg"
                 >
-                  <div className="relative grid grid-cols-1 md:grid-cols-[0.5fr_0.5fr_0.7fr_0.5fr_0.2fr_0.5fr_0.5fr_0.5fr_0.5fr_0.2fr] gap-x-2 items-center">
+                  <div className="relative grid grid-cols-1 md:grid-cols-[0.5fr_0.5fr_0.8fr_0.3fr_0.5fr_0.5fr_0.5fr_0.5fr_0.2fr] gap-x-2 items-center">
                     {/* <button
                           type="button"
                           onClick={() => clearOrnamentRow(index)}
@@ -965,7 +953,7 @@ export default function NewLoanApplication() {
                         ))}
                       </select>
                     </div>
-                    <div>
+                    {/* <div>
                       <label className={labelStyle}>Grams*</label>
                       <input
                         type="number"
@@ -983,19 +971,19 @@ export default function NewLoanApplication() {
                         step="0.01"
                         required
                       />
-                    </div>
+                    </div> */}
                     <div>
-                      <label className={labelStyle}>Qty*</label>
+                      <label className={labelStyle}>Quantity*</label>
                       <input
                         type="number"
                         name="quantity"
                         value={ornament.quantity}
                         onChange={(e) => handleOrnamentChange(index, e)}
                         onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                            onKeyDown={(e) => {
-                              if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                                e.preventDefault();
-                              }
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                            e.preventDefault();
+                          }
                         }}
                         className={inputStyle}
                         placeholder="1"

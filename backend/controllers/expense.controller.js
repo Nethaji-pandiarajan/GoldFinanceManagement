@@ -3,62 +3,49 @@ const logger = require("../config/logger");
 
 exports.getExpensesGroupedByMonth = async (req, res) => {
     logger.info(`[EXPENSE] Request to GET all expenses grouped by month.`);
+    const client = await db.pool.connect();
     try {
         const expensesQuery = `
-             WITH RankedExpenses AS (
-                SELECT
-                    e.*,
-                    ROW_NUMBER() OVER(PARTITION BY month_year ORDER BY id DESC) as rn
-                FROM
-                    datamanagement.manage_expenses e
-            )
             SELECT 
-                g.month_year,
-                g.total_expenses,
-                g.transactions,
-                re.remaining_balance AS month_end_balance -- Get the balance from the last transaction
-            FROM (
-                SELECT 
-                    month_year,
-                    SUM(price) as total_expenses,
-                    json_agg(
-                        json_build_object(
-                            'id', e.id,
-                            'item', e.item,
-                            'quantity', e.quantity,
-                            'description', e.description,
-                            'price', e.price,
-                            'created_date', e.created_date,
-                            'added_by', u.user_name
-                        ) ORDER BY e.created_date DESC
-                    ) as transactions
-                FROM 
-                    datamanagement.manage_expenses e
-                JOIN
-                    datamanagement.users u ON e.added_by = u.user_id
-                GROUP BY 
-                    month_year
-            ) AS g
-            LEFT JOIN 
-                RankedExpenses re ON g.month_year = re.month_year AND re.rn = 1
+                month_year,
+                SUM(price) as total_expenses,
+                json_agg(
+                    json_build_object(
+                        'id', e.id,
+                        'item', e.item,
+                        'quantity', e.quantity,
+                        'description', e.description,
+                        'price', e.price,
+                        'created_date', e.created_date,
+                        'added_by', u.user_name
+                    ) ORDER BY e.created_date DESC
+                ) as transactions
+            FROM 
+                datamanagement.manage_expenses e
+            JOIN
+                datamanagement.users u ON e.added_by = u.user_id
+            GROUP BY 
+                month_year
             ORDER BY 
-                g.month_year DESC;
+                month_year DESC;
         `;
-        const balanceQuery = `
-            SELECT remaining_balance 
-            FROM datamanagement.manage_expenses
-            ORDER BY id DESC LIMIT 1;
+        const investmentBalanceQuery = `
+            SELECT current_balance FROM datamanagement.investment_history ORDER BY id DESC LIMIT 1;
         `;
-        const [expensesResult, balanceResult] = await Promise.all([
-            db.query(expensesQuery),
-            db.query(balanceQuery)
+        const totalExpensesQuery = `
+            SELECT SUM(price) as total_spent FROM datamanagement.manage_expenses;
+        `;
+        const [expensesResult, investmentBalanceResult, totalExpensesResult] = await Promise.all([
+            client.query(expensesQuery),
+            client.query(investmentBalanceQuery),
+            client.query(totalExpensesQuery)
         ]);
-
-        const netAvailableBalance = balanceResult.rows.length > 0 ? balanceResult.rows[0].remaining_balance : "0.00";
-
+        const totalInvested = investmentBalanceResult.rows.length > 0 ? parseFloat(investmentBalanceResult.rows[0].current_balance) : 0;
+        const totalSpent = totalExpensesResult.rows.length > 0 && totalExpensesResult.rows[0].total_spent ? parseFloat(totalExpensesResult.rows[0].total_spent) : 0;
+        const netAvailableBalance = totalInvested - totalSpent;
         res.json({
             monthlyExpenses: expensesResult.rows,
-            netAvailableBalance: netAvailableBalance
+            netAvailableBalance: netAvailableBalance.toFixed(2)
         });
         logger.info(`[EXPENSE] Successfully fetched grouped expenses.`);
     } catch (error) {
