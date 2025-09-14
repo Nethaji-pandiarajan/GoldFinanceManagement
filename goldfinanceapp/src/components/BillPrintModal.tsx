@@ -1,16 +1,13 @@
-// src/components/BillPrintModal.tsx
-import React, { useState } from "react";
+import React, { useMemo, useRef, Fragment, useEffect } from "react";
 import { Dialog, Transition } from "@headlessui/react";
-import { Fragment } from "react";
 import jsPDF from "jspdf";
-import { toPng } from 'html-to-image';
+import { toPng } from "html-to-image";
 import { save } from "@tauri-apps/api/dialog";
 import { writeBinaryFile } from "@tauri-apps/api/fs";
 
 interface Ornament {
   ornament_name: string;
   material_type: string;
-  grams: string;
   karat: string;
   quantity: string;
   gross_weight: string;
@@ -24,10 +21,10 @@ interface Slab {
   interest_rate: string;
 }
 interface FullSchemeDetails {
-    scheme_id: number;
-    scheme_name: string;
-    description: string;
-    slabs: Slab[];
+  scheme_id: number;
+  scheme_name: string;
+  description: string;
+  slabs: Slab[];
 }
 interface LoanDataForBill {
   loan_id: string;
@@ -43,16 +40,9 @@ interface LoanDataForBill {
   net_amount_issued: string;
   interest_rate: string;
   processing_fee: string;
-  scheme: FullSchemeDetails
+  scheme: FullSchemeDetails;
   ornaments: Ornament[];
 }
-
-interface BillPageProps {
-  loanData: LoanDataForBill;
-  copyType: "Customer" | "Office";
-  logo: string;
-}
-
 interface BillPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -81,244 +71,490 @@ const formatCurrency = (value: string | number) => {
   })}`;
 };
 
-const DetailRow: React.FC<{ label: string; tamilLabel: string; value: any ,  isFullWidth?: boolean }> = ({ label, tamilLabel, value,isFullWidth }) => (
-  <div className={`py-1 ${isFullWidth ? 'col-span-2' : ''}`}>
-    <p className="text-xs text-gray-600 font-semibold">{label} / {tamilLabel}</p>
-    <p className="text-sm font-medium text-black">{value || '---'}</p>
+const DetailRow: React.FC<{
+  label: string;
+  tamilLabel: string;
+  value: any;
+  isFullWidth?: boolean;
+}> = ({ label, tamilLabel, value, isFullWidth }) => (
+  <div className={`py-1 ${isFullWidth ? "col-span-2" : ""}`}>
+    <p className="text-xs text-gray-600 font-bold">
+      {label} / {tamilLabel}
+    </p>
+    <p className="text-sm font-medium text-black">{value || "---"}</p>
   </div>
 );
 
-const BillPage: React.FC<BillPageProps> = ({ loanData, copyType, logo }) => {
-  const customerImageUrl = bufferToBase64(loanData.customer_image);
-  return (
-    <div className="bg-white text-black p-6 font-sans w-[210mm] min-h-[297mm] flex flex-col shadow-lg">
-      <header className="flex items-center justify-between pb-2">
-        <img src={logo} alt="Maya Gold Finance Logo" className="h-16 w-16" />
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-black">Maya Gold Finance</h1>
-          <p className="text-sm text-gray-600">AS Complex ,Usilai ,Viruveedu - 624220</p>
-          <p className="text-sm text-gray-600">Phone: 04543295703</p>
-        </div>
-        <div className="h-16 w-16"></div>
-      </header>
-      
-      <hr className="border-t-2 border-black my-2" />
-      
-      <div className="flex justify-between items-start mb-4">
-        <h2 className="text-lg font-semibold text-gray-800 mt-2">Loan Registration Agreement</h2>
-        <div className="text-right">
-          <p className="text-xs font-semibold text-gray-600">{copyType} Copy</p>
-          {customerImageUrl && <img src={customerImageUrl} alt="Customer" className="w-20 h-24 object-cover border-2 border-gray-300 rounded mt-1" />}
-        </div>
-      </div>
+interface BillPageContentProps {
+  loanData: LoanDataForBill;
+  logo: string;
+  copyType: "Customer" | "Office";
+  ornamentsToShow: Ornament[];
+  showTotals: boolean;
+  showFinancialSummary: boolean;
+  showOtherExpenses: boolean;
+  showAuctionCharges: boolean;
+  showFooter: boolean;
+  pageNumber?: number;
+  totalPages?: number;
+}
 
-      <section className="grid grid-cols-2 gap-x-8">
-        <div>
-          <DetailRow label="Loan ID" tamilLabel="கடன் எண்" value={loanData.loan_id} />
-          <DetailRow label="Loan Date" tamilLabel="கடன் தேதி" value={new Date(loanData.loan_datetime).toLocaleString()} />
-          <DetailRow label="Final Due Date" tamilLabel="இறுதி செலுத்த வேண்டிய தேதி" value={new Date(loanData.due_date).toLocaleDateString()} />
-          <DetailRow label="Customer Name" tamilLabel="வாடிக்கையாளர் பெயர்" value={loanData.customer_name} />
+const BillPageContent: React.FC<BillPageContentProps> = ({
+  loanData,
+  logo,
+  copyType,
+  ornamentsToShow,
+  showTotals,
+  showFinancialSummary,
+  showOtherExpenses,
+  showAuctionCharges,
+  showFooter,
+  pageNumber,
+  totalPages,
+}) => {
+  const customerImageUrl = bufferToBase64(loanData.customer_image);
+  const totalGrossWeight = useMemo(
+    () =>
+      loanData.ornaments.reduce(
+        (sum, orn) => sum + (parseFloat(orn.gross_weight) || 0),
+        0
+      ),
+    [loanData.ornaments]
+  );
+  const totalStoneWeight = useMemo(
+    () =>
+      loanData.ornaments.reduce(
+        (sum, orn) => sum + (parseFloat(orn.stone_weight) || 0),
+        0
+      ),
+    [loanData.ornaments]
+  );
+  const totalNetWeight = useMemo(
+    () =>
+      loanData.ornaments.reduce(
+        (sum, orn) => sum + (parseFloat(orn.net_weight) || 0),
+        0
+      ),
+    [loanData.ornaments]
+  );
+  const schemeDetailsString = loanData.scheme
+    ? `${loanData.scheme.scheme_name}: ${loanData.scheme.slabs
+        .map((s) => `${s.start_day}-${s.end_day} days @ ${s.interest_rate}%`)
+        .join(", ")}`
+    : "No Scheme Assigned";
+
+  return (
+    <div className="bg-white text-black p-4 font-sans w-[210mm] min-h-[297mm] flex flex-col shadow-lg text-left">
+      {pageNumber === 1 && (
+        <>
+          <header className="flex justify-between items-start pb-2">
+            <img src={logo} alt="Company Logo" className="h-16 w-16" />
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-black">
+                Maya Gold Finance
+              </h1>
+              <p className="text-xs text-gray-600">
+                AS Complex, Usilai, Viruveedu - 624220
+              </p>
+              <p className="text-xs text-gray-600">Phone: 04543295703</p>
+            </div>
+            {customerImageUrl ? (
+              <img
+                src={customerImageUrl}
+                alt="Customer"
+                className="w-20 h-24 object-cover border-2 border-gray-400 rounded"
+              />
+            ) : (
+              <div className="w-20 h-24"></div>
+            )}
+          </header>
+          <div className="text-center text-xs font-bold my-1">
+            {copyType} Copy
+          </div>
+          <hr className="border-t-2 border-black" />
+          <h2 className="text-sm font-semibold text-gray-800 mt-1 text-center">
+            Loan Registration Agreement
+          </h2>
+          <section className="mt-3 text-sm">
+            <div className="grid grid-cols-2 gap-x-6">
+              <DetailRow
+                label="Loan ID"
+                tamilLabel="கடன் எண்"
+                value={loanData.loan_id}
+              />
+              <DetailRow
+                label="Phone"
+                tamilLabel="தொலைபேசி எண்"
+                value={loanData.phone}
+              />
+              <DetailRow
+                label="Loan Date"
+                tamilLabel="கடன் தேதி"
+                value={new Date(loanData.loan_datetime).toLocaleString()}
+              />
+              <DetailRow
+                label="Nominee Name"
+                tamilLabel="பரிந்துரைக்கப்பட்டவர் பெயர்"
+                value={loanData.nominee_name}
+              />
+              <DetailRow
+                label="Final Due Date"
+                tamilLabel="இறுதி செலுத்த வேண்டிய தேதி"
+                value={new Date(loanData.due_date).toLocaleDateString()}
+              />
+              <DetailRow
+                label="Nominee Phone"
+                tamilLabel="பரிந்துரைக்கப்பட்டவர் தொலைபேசி"
+                value={loanData.nominee_phone}
+              />
+              <DetailRow
+                label="Customer Name"
+                tamilLabel="வாடிக்கையாளர் பெயர்"
+                value={loanData.customer_name}
+              />
+              <DetailRow
+                label="Address"
+                tamilLabel="முகவரி"
+                value={loanData.current_address || loanData.address}
+              />
+            </div>
+            <div className="mt-1 border-t-2 border-black pt-1">
+              <DetailRow
+                label="Scheme Details"
+                tamilLabel="திட்ட விவரங்கள்"
+                value={schemeDetailsString}
+                isFullWidth={true}
+              />
+            </div>
+          </section>
+        </>
+      )}
+      {pageNumber && pageNumber > 1 && (
+        <div className="flex justify-between items-center text-sm font-bold border-b-2 border-black pb-1 mb-2">
+          <span>Loan ID: {loanData.loan_id} (Continued)</span>
+          <span>
+            Page {pageNumber} of {totalPages}
+          </span>
         </div>
-        <div>
-          <DetailRow label="Phone" tamilLabel="தொலைபேசி எண்" value={loanData.phone} />
-          <DetailRow label="Nominee Name" tamilLabel="பரிந்துரைக்கப்பட்டவர் பெயர்" value={loanData.nominee_name} />
-          <DetailRow label="Nominee Phone" tamilLabel="பரிந்துரைக்கப்பட்டவர் தொலைபேசி" value={loanData.nominee_phone} />
-          <DetailRow label="Address" tamilLabel="முகவரி" value={loanData.current_address || loanData.address} />
-        </div>
-      </section>
-      <section className="my-4">
-        <h3 className="text-lg font-bold border-b border-gray-400 pb-1 mb-2">Pledged Ornaments / அடகு வைக்கப்பட்ட ஆபரணங்கள்</h3>
-        <table className="w-full text-left text-sm">
-          <thead className="bg-gray-200 uppercase">
-            <tr>
-              <th className="p-2">Name</th>
-              <th className="p-2">Qty</th>
-              <th className="p-2">Gross Wt.</th>
-              <th className="p-2">Stone Wt.</th>
-              <th className="p-2">Net Wt.</th>
-              <th className="p-2">Karat</th>
+      )}
+      <section className="my-3">
+        <h3 className="text-sm font-bold border-b-2 border-black pb-1 mb-1">
+          Pledged Ornaments / அடகு வைக்கப்பட்ட ஆபரணங்கள்
+        </h3>
+        <table
+          className="w-full text-xs border-collapse"
+          style={{ border: "2px solid black" }}
+        >
+          <thead style={{ borderBottom: "2px solid black" }}>
+            <tr className="font-bold text-left">
+              <th className="p-1 border-r-2 border-black">Name</th>
+              <th className="p-1 border-r-2 border-black">Qty</th>
+              <th className="p-1 border-r-2 border-black">Gross Wt.</th>
+              <th className="p-1 border-r-2 border-black">Stone Wt.</th>
+              <th className="p-1 border-r-2 border-black">Net Wt.</th>
+              <th className="p-1 border-r-2 border-black">Karat</th>
+              <th className="p-1">Image</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-300">
-            {loanData.ornaments.map((orn: Ornament, index: number) => (
-              <tr key={index}>
-                <td className="p-2 font-medium">{orn.ornament_name}</td>
-                <td className="p-2">{orn.quantity}</td>
-                <td className="p-2">{parseFloat(orn.gross_weight).toFixed(2)}g</td>
-                <td className="p-2">{parseFloat(orn.stone_weight).toFixed(2)}g</td>
-                <td className="p-2 font-bold">{parseFloat(orn.net_weight).toFixed(2)}g</td>
-                <td className="p-2">{orn.karat}</td>
+          <tbody>
+            {ornamentsToShow.map((orn, index) => (
+              <tr key={index} style={{ borderBottom: "2px solid black" }}>
+                <td className="p-1 border-r-2 border-black">
+                  {orn.ornament_name}
+                </td>
+                <td className="p-1 border-r-2 border-black">{orn.quantity}</td>
+                <td className="p-1 border-r-2 border-black">
+                  {parseFloat(orn.gross_weight).toFixed(2)}g
+                </td>
+                <td className="p-1 border-r-2 border-black">
+                  {parseFloat(orn.stone_weight).toFixed(2)}g
+                </td>
+                <td className="p-1 border-r-2 border-black font-bold">
+                  {parseFloat(orn.net_weight).toFixed(2)}g
+                </td>
+                <td className="p-1 border-r-2 border-black">{orn.karat}</td>
+                <td className="p-1 flex justify-center items-center">
+                  {orn.image_preview && (
+                    <div className="h-[40px] w-[40px] border border-gray-400 flex items-center justify-center">
+                      <img
+                        src={orn.image_preview}
+                        alt="Ornament"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
+            {showTotals && (
+              <tr className="font-bold bg-gray-100">
+                <td
+                  colSpan={2}
+                  className="p-1 text-right border-r-2 border-black"
+                >
+                  TOTALS:
+                </td>
+                <td className="p-1 border-r-2 border-black">
+                  {totalGrossWeight.toFixed(2)}g
+                </td>
+                <td className="p-1 border-r-2 border-black">
+                  {totalStoneWeight.toFixed(2)}g
+                </td>
+                <td className="p-1 border-r-2 border-black">
+                  {totalNetWeight.toFixed(2)}g
+                </td>
+                <td colSpan={2} className="p-1"></td>
+              </tr>
+            )}
           </tbody>
         </table>
       </section>
-      <section className="my-4">
-    <div className="text-sm font-bold mb-2">
-        Scheme Details / திட்ட விவரங்கள்: {loanData.scheme?.scheme_name || 'N/A'}
-    </div>
-    {loanData.scheme && loanData.scheme.slabs.length > 0 ? (
-        <div className="text-sm text-black space-y-1">
-            {loanData.scheme.slabs.map((slab, index) => (
-                <div key={index}>
-                    <span className="font-semibold inline-block w-20">Slab {index + 1}:</span>
-                    <span className="inline-block w-40 text-center">{slab.start_day} - {slab.end_day} days</span>
-                    <span className="font-bold inline-block w-20 text-right">{slab.interest_rate}%</span>
-                </div>
-            ))}
-        </div>
-          ) : (
-              <p className="text-sm text-gray-700">No scheme details available.</p>
-          )}
-      </section>
-      <section className="my-4 grid grid-cols-4 gap-4 p-4 bg-gray-100 rounded-lg">
-        <DetailRow label="Total Loan Amount Issued" tamilLabel="மொத்த கடன் தொகை" value={formatCurrency(loanData.net_amount_issued)} />
-        <DetailRow label="Interest Rate" tamilLabel="வட்டி விகிதம்" value={`${loanData.interest_rate}% per annum`} />
-        <DetailRow label="Processing Fee" tamilLabel="செயலாக்க கட்டணம்" value={formatCurrency(loanData.processing_fee)} />
-        <div className="py-1">
-          <p className="text-xs text-gray-600 font-semibold">Other Expenses / இதர செலவுகள்</p>
-          <div className="h-8 border-b border-gray-400"></div>
-        </div>
-      </section>  
-      <section className="my-4">
-          <div className="py-1">
-          <p className="text-xs text-gray-600 font-semibold">Auction Charges / ஏலக் கட்டணங்கள்</p>
+      {showFinancialSummary && (
+        <section className="my-3 p-2 border-2 border-black text-sm">
+          <div className="grid grid-cols-3 gap-4">
+            <DetailRow
+              label="Loan Amount Issued"
+              tamilLabel="வழங்கப்பட்ட கடன் தொகை"
+              value={formatCurrency(loanData.net_amount_issued)}
+            />
+            <DetailRow
+              label="Interest Rate"
+              tamilLabel="வட்டி விகிதம்"
+              value={`${loanData.interest_rate}% p.a.`}
+            />
+            <DetailRow
+              label="Processing Fee"
+              tamilLabel="செயலாக்க கட்டணம்"
+              value={formatCurrency(loanData.processing_fee)}
+            />
           </div>
-      </section>
-      <div className="flex-grow flex flex-col justify-end">
-        <footer className="mt-16 flex justify-between items-end border-t border-gray-400 pt-4">
-            <div className="text-center"><p className="font-semibold">_________________________</p><p className="text-sm">Customer Signature / வாடிக்கையாளர் கையொப்பம்</p></div>
-            <div className="text-center"><p className="font-semibold">_________________________</p><p className="text-sm">Branch Manager Signature / கிளை மேலாளர் கையொப்பம்</p></div>
-        </footer>
-      </div>
+        </section>
+      )}
+      {showOtherExpenses && (
+        <section className="mt-4 text-sm">
+          <p className="text-xs text-gray-800 font-bold">
+            Other Expenses / இதர செலவுகள்:
+          </p>
+          <div className="h-20"></div>
+        </section>
+      )}
+      {showAuctionCharges && (
+        <section className="mt-4 text-sm">
+          <p className="text-xs text-gray-800 font-bold">
+            Auction Charges / ஏலக் கட்டணங்கள்:
+          </p>
+          <div className="h-20"></div>
+        </section>
+      )}
+      {showFooter && (
+        <div className="flex-grow flex flex-col justify-end mt-auto">
+          <footer className="mt-8 flex justify-between items-end border-t-2 border-black pt-2 text-xs">
+            <div className="text-center w-1/3">
+              <p className="font-semibold">_________________________</p>
+              <p className="font-bold">
+                Customer Signature / வாடிக்கையாளர் கையொப்பம்
+              </p>
+            </div>
+            <div className="text-center w-1/3">
+              <p className="font-semibold">_________________________</p>
+              <p className="font-bold">
+                Customer Signature (during return of ornaments) / ஆபரணங்கள்
+                திரும்பப் பெறும்போது கையொப்பம்
+              </p>
+            </div>
+            <div className="text-center w-1/3">
+              <p className="font-semibold">_________________________</p>
+              <p className="font-bold">
+                Branch Manager Signature / கிளை மேலாளர் கையொப்பம்
+              </p>
+            </div>
+          </footer>
+        </div>
+      )}
     </div>
   );
 };
 
 export const BillPrintModal: React.FC<BillPrintModalProps> = ({
-  isOpen, onClose, loanData, logo, setAlert
+  isOpen,
+  onClose,
+  loanData,
+  logo,
+  setAlert,
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const [view, setView] = useState<'customer' | 'office'>('customer');
-  const handleSavePdf = async () => {
-    setIsSaving(true);
-    const elementId = view === 'customer' ? 'customer-copy-content' : 'office-copy-content';
-    const contentToPrint = document.getElementById(elementId);
-    if (!contentToPrint) {
-      console.error("Content to print not found!");
-      setIsSaving(false);
-      return;
-    }
-    try {
-      const imgData = await toPng(contentToPrint, { 
-        quality: 1.0,
-        pixelRatio: 2,
-      });
-      const pdf = new jsPDF('p', 'mm', 'a4', true);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      const pdfBytes = pdf.output('arraybuffer');
-      
-      const filePath = await save({
-        title: `Save ${view === 'customer' ? 'Customer' : 'Office'} Copy`,
-        defaultPath: `Loan_${loanData.loan_id}_${view === 'customer' ? 'Customer' : 'Office'}_Copy.pdf`,
-        filters: [{ name: 'PDF Document', extensions: ['pdf'] }]
-      });
+  const page1Ref = useRef<HTMLDivElement>(null);
+  const page2Ref = useRef<HTMLDivElement>(null);
+  const ornamentCount = loanData.ornaments.length;
+  const ornamentsPage1 =
+    ornamentCount > 9 ? loanData.ornaments.slice(0, 9) : loanData.ornaments;
+  const ornamentsPage2 = ornamentCount > 9 ? loanData.ornaments.slice(9) : [];
+  const showTotalsOnPage1 = ornamentCount <= 7;
+  const showFinancialSummaryOnPage1 = ornamentCount <= 7;
+  const showOtherExpensesOnPage1 = ornamentCount <= 6;
+  const showAuctionChargesOnPage1 = ornamentCount <= 4;
+  const showFooterOnPage1 = ornamentCount <= 4;
 
-      if (filePath) {
-        await writeBinaryFile({ path: filePath, contents: new Uint8Array(pdfBytes) });
-        if (view === 'customer') {
-          setView('office');
-        } else {
-          setAlert({ show: true, type: "success", message: `Loan #${loanData.loan_id} created and saved successfully!` });
-          onClose();
-        }
-      } else {
-        setIsSaving(false);
-      }
-    } catch (error) {
-      console.error("Failed to generate or save PDF", error);
-      setAlert({
-          show: true,
-          type: "error",
-          message: "Failed to generate or save PDF",
+  const needsPage2 = !showFooterOnPage1;
+  useEffect(() => {
+    if (isOpen) {
+      handleSavePdf();
+    }
+  }, [isOpen]);
+  const handleSavePdf = async () => {
+    try {
+      for (const copyType of ["Customer", "Office"] as const) {
+        const pdf = new jsPDF("p", "mm", "a4", true);
+        const page1Content = page1Ref.current;
+        if (!page1Content) throw new Error("Page 1 content not found");
+        const imgData1 = await toPng(page1Content, {
+          quality: 1.0,
+          pixelRatio: 2.5,
         });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const imgProps1 = pdf.getImageProperties(imgData1);
+        const pdfHeight1 = (imgProps1.height * pdfWidth) / imgProps1.width;
+        pdf.addImage(
+          imgData1,
+          "PNG",
+          0,
+          0,
+          pdfWidth,
+          pdfHeight1,
+          undefined,
+          "FAST"
+        );
+        if (needsPage2) {
+          const page2Content = page2Ref.current;
+          if (!page2Content) throw new Error("Page 2 content not found");
+          pdf.addPage();
+          const imgData2 = await toPng(page2Content, {
+            quality: 1.0,
+            pixelRatio: 2.5,
+          });
+          const imgProps2 = pdf.getImageProperties(imgData2);
+          const pdfHeight2 = (imgProps2.height * pdfWidth) / imgProps2.width;
+          pdf.addImage(
+            imgData2,
+            "PNG",
+            0,
+            0,
+            pdfWidth,
+            pdfHeight2,
+            undefined,
+            "FAST"
+          );
+        }
+        const pdfBytes = pdf.output("arraybuffer");
+        const filePath = await save({
+          title: `Save ${copyType} Copy`,
+          defaultPath: `Loan_${loanData.loan_id}_${copyType}_Copy.pdf`,
+          filters: [{ name: "PDF Document", extensions: ["pdf"] }],
+        });
+        if (!filePath) {
+          return;
+        }
+        await writeBinaryFile({
+          path: filePath,
+          contents: new Uint8Array(pdfBytes),
+        });
+      }
+
+      setAlert({
+        show: true,
+        type: "success",
+        message: `Loan #${loanData.loan_id} created and saved successfully!`,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      setAlert({
+        show: true,
+        type: "error",
+        message: "Failed to generate PDF.",
+      });
     } finally {
-      setIsSaving(false);
+      onClose();
     }
   };
-  return (
-    <>
-      <Transition appear show={isOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => {
-        setView('customer');
-        onClose();
-      }}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
-          </Transition.Child>
 
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-start justify-center p-4">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-[#111315] p-4 text-left align-middle shadow-xl transition-all">
-                <div className="bg-gray-400 p-4">
-                  <div className="flex justify-center">
-                    {view === 'customer' && (
-                      <div id="customer-copy-content">
-                        <BillPage loanData={loanData} copyType="Customer" logo={logo} />
-                      </div>
-                    )}
-                    {view === 'office' && (
-                      <div id="office-copy-content">
-                        <BillPage loanData={loanData} copyType="Office" logo={logo} />
-                      </div>
-                    )}
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child as={Fragment}>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
+        </Transition.Child>
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child as={Fragment}>
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-[#111315] p-6 text-center align-middle shadow-xl transition-all">
+                <div className="absolute -left-[9999px] top-0">
+                  <div ref={page1Ref}>
+                    <BillPageContent
+                      loanData={loanData}
+                      logo={logo}
+                      copyType="Customer"
+                      ornamentsToShow={ornamentsPage1}
+                      showTotals={showTotalsOnPage1}
+                      showFinancialSummary={showFinancialSummaryOnPage1}
+                      showOtherExpenses={showOtherExpensesOnPage1}
+                      showAuctionCharges={showAuctionChargesOnPage1}
+                      showFooter={showFooterOnPage1}
+                      pageNumber={1}
+                      totalPages={needsPage2 ? 2 : 1}
+                    />
+                  </div>
+                  {needsPage2 && (
+                    <div ref={page2Ref}>
+                      <BillPageContent
+                        loanData={loanData}
+                        logo={logo}
+                        copyType="Customer"
+                        ornamentsToShow={ornamentsPage2}
+                        showTotals={!showTotalsOnPage1}
+                        showFinancialSummary={!showFinancialSummaryOnPage1}
+                        showOtherExpenses={!showOtherExpensesOnPage1}
+                        showAuctionCharges={!showAuctionChargesOnPage1}
+                        showFooter={true}
+                        pageNumber={2}
+                        totalPages={2}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 flex flex-col items-center justify-center gap-4 min-h-[100px]">
+                  <div className="text-white font-semibold text-center">
+                    <svg
+                      className="animate-spin h-8 w-8 text-white mx-auto mb-2"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <p>Generating PDF...</p>
+                    <p className="text-sm text-gray-400">
+                      Please wait, the save dialog will appear shortly.
+                    </p>
                   </div>
                 </div>
-                <div className="mt-4 flex justify-center items-center gap-4">
-                  <p className="text-sm text-gray-400">
-                    Showing: <span className="font-bold text-white">{view === 'customer' ? 'Customer Copy (1 of 2)' : 'Office Copy (2 of 2)'}</span>
-                  </p>
-                  <button
-                    type="button"
-                    className="px-8 py-3 rounded bg-[#c69909] hover:bg-yellow-500 text-black font-bold"
-                    onClick={handleSavePdf}
-                    disabled={isSaving}
-                  >
-                    {isSaving 
-                      ? 'Saving PDF...' 
-                      : view === 'customer' 
-                        ? 'Save Customer Copy & Continue' 
-                        : 'Save Office Copy & Finish'
-                    }
-                  </button>
-                </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
+              </Dialog.Panel>
+            </Transition.Child>
           </div>
-        </Dialog>
-      </Transition>
-    </>
+        </div>
+      </Dialog>
+    </Transition>
   );
 };

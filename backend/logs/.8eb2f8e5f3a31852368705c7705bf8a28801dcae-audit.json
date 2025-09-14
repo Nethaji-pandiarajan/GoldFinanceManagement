@@ -39,6 +39,11 @@
             "date": 1757655640782,
             "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-09-12.log",
             "hash": "191e230b70e2e4e9a40edc9c482b3f232bdb64f0ac880b6853bd960e698c1c86"
+        },
+        {
+            "date": 1757841368518,
+            "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-09-14.log",
+            "hash": "78abfa0984b6454ddcb815952dab931e0d29d6a8805351732927cc88616d1aa2"
         }
     ],
     "hashType": "sha256"
