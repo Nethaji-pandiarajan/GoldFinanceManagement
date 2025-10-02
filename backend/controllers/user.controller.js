@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger"); 
+const { logger } = require("../config/logger"); 
 exports.getUsersWithInvestments = async (req, res) => {
     logger.info(`[USER] Request received to GET all users with their investment amounts.`);
     try {

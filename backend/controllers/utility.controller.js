@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 exports.checkEmail = async (req, res) => {
     const { email, customerUuid } = req.body;
     const context = customerUuid ? `(excluding customer UUID: ${customerUuid})` : '(new customer)';

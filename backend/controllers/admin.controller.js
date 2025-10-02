@@ -1,6 +1,6 @@
 // backend/controllers/admin.controller.js
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 exports.getAllUsers = async (req, res) => {
     logger.info(`[ADMIN] Super admin '${req.user.username}' requested to GET all users.`);

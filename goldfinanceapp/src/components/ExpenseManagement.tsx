@@ -6,7 +6,7 @@ import AlertNotification from "./AlertNotification";
 
 export default function ExpenseManagement() {
   const [monthlyExpenses, setMonthlyExpenses] = useState<any[]>([]);
-  const [netAvailableBalance, setNetAvailableBalance] = useState(0);
+  const [totalExpensesSpent, setTotalExpensesSpent] = useState(0);
   const [alert, setAlert] = useState<any>(null);
   const [item, setItem] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -17,9 +17,7 @@ export default function ExpenseManagement() {
     try {
       const response = await api.get("/api/expenses");
       setMonthlyExpenses(response.data.monthlyExpenses);
-      setNetAvailableBalance(
-        parseFloat(response.data.netAvailableBalance || "0")
-      );
+      setTotalExpensesSpent(response.data.totalExpensesSpent || 0);
     } catch (error) {
       setAlert({
         show: true,
@@ -75,9 +73,9 @@ export default function ExpenseManagement() {
             Expense Management
           </h1>
           <div className="text-right">
-            <p className="text-sm text-gray-400">Net Available Balance</p>
-            <p className="text-2xl font-bold text-green-400">
-              {formatCurrency(netAvailableBalance)}
+            <p className="text-sm text-gray-400">Total Expenses</p>
+            <p className="text-2xl font-bold text-red-400">
+              {formatCurrency(totalExpensesSpent)}
             </p>
           </div>
         </div>

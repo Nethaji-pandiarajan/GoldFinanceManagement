@@ -1,6 +1,6 @@
 // backend/middleware/roleMiddleware.js
 
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 const checkRole = (roles) => {
   return (req, res, next) => {

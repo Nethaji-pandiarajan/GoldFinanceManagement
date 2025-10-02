@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 const axios = require('axios');
 exports.getNextLoanId = async (req, res) => {
     logger.info(`[LOAN] Request received to GET next loan ID.`);
