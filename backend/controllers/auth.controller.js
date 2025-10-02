@@ -2,7 +2,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 exports.verifyPassword = async (req, res) => {
     const { password } = req.body;
     const userId = req.user.id;

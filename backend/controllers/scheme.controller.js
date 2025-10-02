@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 exports.getAllSchemes = async (req, res) => {
     logger.info(`[SCHEME] Request to GET all schemes.`);

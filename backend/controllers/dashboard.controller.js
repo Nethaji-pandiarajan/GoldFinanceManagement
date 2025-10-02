@@ -1,6 +1,6 @@
 //dashboard.controller.js
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 exports.getDashboardStats = async (req, res) => {
     logger.info(`[DASHBOARD] Request received to GET dashboard statistics.`);

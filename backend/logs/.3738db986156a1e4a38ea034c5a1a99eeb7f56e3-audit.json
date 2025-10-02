@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 3
+    },
+    "auditLog": "E:\\GoldFinanceManagement\\backend\\logs\\.3738db986156a1e4a38ea034c5a1a99eeb7f56e3-audit.json",
+    "files": [
+        {
+            "date": 1759427511120,
+            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-10-02.log",
+            "hash": "e49712b0d737abb1a0b94371a99015f6a790198c22c5ebfc6bb7cba330ad9331"
+        },
+        {
+            "date": 1759429800026,
+            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-10-03.log",
+            "hash": "c271a930c73e407d558adfa3510bb62598bad24b0568b252e2456b2492fe1a34"
+        }
+    ],
+    "hashType": "sha256"
+}

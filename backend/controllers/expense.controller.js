@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 exports.getExpensesGroupedByMonth = async (req, res) => {
     logger.info(`[EXPENSE] Request to GET all expenses grouped by month.`);
@@ -44,6 +44,7 @@ exports.getExpensesGroupedByMonth = async (req, res) => {
         const totalSpent = totalExpensesResult.rows.length > 0 && totalExpensesResult.rows[0].total_spent ? parseFloat(totalExpensesResult.rows[0].total_spent) : 0;
         const netAvailableBalance = totalInvested - totalSpent;
         res.json({
+            totalExpensesSpent : totalSpent,
             monthlyExpenses: expensesResult.rows,
             netAvailableBalance: netAvailableBalance.toFixed(2)
         });

@@ -397,85 +397,88 @@ export const BillPrintModal: React.FC<BillPrintModalProps> = ({
   const needsPage2 = !showFooterOnPage1;
   useEffect(() => {
     if (isOpen) {
-      handleSavePdf();
+      const handleSavePdf = async () => {
+        try {
+          for (const copyType of ["Customer", "Office"] as const) {
+            const pdf = new jsPDF("p", "mm", "a4", true);
+            const page1Content = page1Ref.current;
+            if (!page1Content) throw new Error("Page 1 content not found");
+            const imgData1 = await toPng(page1Content, {
+              quality: 1.0,
+              pixelRatio: 2.5,
+            });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const imgProps1 = pdf.getImageProperties(imgData1);
+            const pdfHeight1 = (imgProps1.height * pdfWidth) / imgProps1.width;
+            pdf.addImage(
+              imgData1,
+              "PNG",
+              0,
+              0,
+              pdfWidth,
+              pdfHeight1,
+              undefined,
+              "FAST"
+            );
+            if (needsPage2) {
+              const page2Content = page2Ref.current;
+              if (!page2Content) throw new Error("Page 2 content not found");
+              pdf.addPage();
+              const imgData2 = await toPng(page2Content, {
+                quality: 1.0,
+                pixelRatio: 2.5,
+              });
+              const imgProps2 = pdf.getImageProperties(imgData2);
+              const pdfHeight2 = (imgProps2.height * pdfWidth) / imgProps2.width;
+              pdf.addImage(
+                imgData2,
+                "PNG",
+                0,
+                0,
+                pdfWidth,
+                pdfHeight2,
+                undefined,
+                "FAST"
+              );
+            }
+            const pdfBytes = pdf.output("arraybuffer");
+            const filePath = await save({
+              title: `Save ${copyType} Copy`,
+              defaultPath: `Loan_${loanData.loan_id}_${copyType}_Copy.pdf`,
+              filters: [{ name: "PDF Document", extensions: ["pdf"] }],
+            });
+            if (!filePath) {
+              return;
+            }
+            await writeBinaryFile({
+              path: filePath,
+              contents: new Uint8Array(pdfBytes),
+            });
+          }
+
+          setAlert({
+            show: true,
+            type: "success",
+            message: `Loan #${loanData.loan_id} created and saved successfully!`,
+          });
+          onClose();
+        } catch (error) {
+          console.error("Failed to generate PDF:", error);
+          setAlert({
+            show: true,
+            type: "error",
+            message: "Failed to generate PDF.",
+          });
+        } finally {
+          onClose();
+        }
+      };
+      const timer = setTimeout(handleSavePdf, 100);
+
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
-  const handleSavePdf = async () => {
-    try {
-      for (const copyType of ["Customer", "Office"] as const) {
-        const pdf = new jsPDF("p", "mm", "a4", true);
-        const page1Content = page1Ref.current;
-        if (!page1Content) throw new Error("Page 1 content not found");
-        const imgData1 = await toPng(page1Content, {
-          quality: 1.0,
-          pixelRatio: 2.5,
-        });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const imgProps1 = pdf.getImageProperties(imgData1);
-        const pdfHeight1 = (imgProps1.height * pdfWidth) / imgProps1.width;
-        pdf.addImage(
-          imgData1,
-          "PNG",
-          0,
-          0,
-          pdfWidth,
-          pdfHeight1,
-          undefined,
-          "FAST"
-        );
-        if (needsPage2) {
-          const page2Content = page2Ref.current;
-          if (!page2Content) throw new Error("Page 2 content not found");
-          pdf.addPage();
-          const imgData2 = await toPng(page2Content, {
-            quality: 1.0,
-            pixelRatio: 2.5,
-          });
-          const imgProps2 = pdf.getImageProperties(imgData2);
-          const pdfHeight2 = (imgProps2.height * pdfWidth) / imgProps2.width;
-          pdf.addImage(
-            imgData2,
-            "PNG",
-            0,
-            0,
-            pdfWidth,
-            pdfHeight2,
-            undefined,
-            "FAST"
-          );
-        }
-        const pdfBytes = pdf.output("arraybuffer");
-        const filePath = await save({
-          title: `Save ${copyType} Copy`,
-          defaultPath: `Loan_${loanData.loan_id}_${copyType}_Copy.pdf`,
-          filters: [{ name: "PDF Document", extensions: ["pdf"] }],
-        });
-        if (!filePath) {
-          return;
-        }
-        await writeBinaryFile({
-          path: filePath,
-          contents: new Uint8Array(pdfBytes),
-        });
-      }
-
-      setAlert({
-        show: true,
-        type: "success",
-        message: `Loan #${loanData.loan_id} created and saved successfully!`,
-      });
-      onClose();
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Failed to generate PDF.",
-      });
-    } finally {
-      onClose();
-    }
-  };
+  
 
   return (
     <Transition appear show={isOpen} as={Fragment}>

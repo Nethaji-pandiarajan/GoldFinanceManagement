@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger"); 
+const { logger } = require("../config/logger"); 
 exports.getAllOrnaments = async (req, res) => {
   logger.info(`[ORNAMENT] Request received to GET all ornaments.`);
   try {
