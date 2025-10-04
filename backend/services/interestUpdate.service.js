@@ -42,7 +42,7 @@ const updateInterestForAllPendingLoans = async () => {
       if (daysSinceStart >= 0 && daysSinceStart <= 15) {
         const dailyInterest = (principalAmount * initialAnnualRate / 100) / 365;
         interestToUpdate = dailyInterest * 15;
-        logger.info(`[CRON] Loan #${loan.loan_id} (Case 1: 0-15 days): Setting fixed 15-day interest: ${interestToUpdate.toFixed(2)}`);
+        logger.info(`[CRON] Loan #${loan.loan_id} (Case 1: 0-15 days): No changes needed remains interest amount: ${interestToUpdate.toFixed(2)}`);
       }
       else if (daysSinceStart >= 16 && daysSinceStart <= 30) {
         const dailyInterest = (principalAmount * initialAnnualRate / 100) / 365;

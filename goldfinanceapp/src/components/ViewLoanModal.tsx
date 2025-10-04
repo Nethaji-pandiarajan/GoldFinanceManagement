@@ -1,7 +1,6 @@
 import clsx from "clsx";
 import { Dialog, Transition } from "@headlessui/react";
-import { Fragment, useState } from "react";
-import { ReactNode } from "react";
+import { Fragment, useState, useMemo, ReactNode } from "react";
 import ImageViewerModal from "./ImageViewerModal";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 const bufferToBase64 = (buffer: any): string | null => {
@@ -61,6 +60,14 @@ export default function ViewLoanModal({
   const timeDiff = today.getTime() - loanStartDate.getTime();
   const daysSinceStart = Math.floor(timeDiff / (1000 * 3600 * 24));
   const isNewLoanView = daysSinceStart <= 30;
+  const hasPerOrnamentImages = useMemo(
+    () => loanData?.ornaments?.some((orn: any) => orn.ornament_image),
+    [loanData?.ornaments]
+  );
+  const singleLoanImageUrl = useMemo(
+    () => bufferToBase64(loanData?.ornament_image),
+    [loanData?.ornament_image]
+  );
   return (
     <>
       {viewingImage && (
@@ -95,21 +102,21 @@ export default function ViewLoanModal({
               >
                 <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-[#111315] border border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
                   <div className="flex justify-between items-start mb-4">
-                  <Dialog.Title
-                    as="h3"
-                    className="text-2xl font-bold leading-6 text-[#c69909]"
-                  >
-                    Loan Details for {loanData.customer_name} (ID:{" "}
-                    {loanData.loan_id})
-                  </Dialog.Title>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="p-2 -mt-2 -mr-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
-                    aria-label="Close"
-                  >
-                    <XMarkIcon className="h-6 w-6" />
-                  </button>
+                    <Dialog.Title
+                      as="h3"
+                      className="text-2xl font-bold leading-6 text-[#c69909]"
+                    >
+                      Loan Details for {loanData.customer_name} (ID:{" "}
+                      {loanData.loan_id})
+                    </Dialog.Title>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="p-2 -mt-2 -mr-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                      aria-label="Close"
+                    >
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
                   </div>
                   <div className="mt-4 max-h-[75vh] overflow-y-auto pr-2 space-y-6">
                     <section>
@@ -198,7 +205,9 @@ export default function ViewLoanModal({
                               <th className="p-2">Net Wt.</th>
                               <th className="p-2">Grams</th>
                               <th className="p-2">Karat</th>
-                              <th className="p-2">Image</th>
+                              {hasPerOrnamentImages && (
+                                <th className="p-2">Image</th>
+                              )}
                             </tr>
                           </thead>
                           <tbody>
@@ -228,25 +237,27 @@ export default function ViewLoanModal({
                                     {parseFloat(orn.grams).toFixed(2)}g
                                   </td>
                                   <td className="p-2">{orn.karat}</td>
-                                  <td className="p-2">
-                                    {imageUrl ? (
-                                      <button
-                                        onClick={() =>
-                                          setViewingImage(imageUrl)
-                                        }
-                                      >
-                                        <img
-                                          src={imageUrl}
-                                          alt={orn.ornament_name}
-                                          className="h-12 w-12 object-cover rounded-md cursor-pointer hover:scale-110 transition-transform"
-                                        />
-                                      </button>
-                                    ) : (
-                                      <span className="text-xs text-gray-600">
-                                        No Img
-                                      </span>
-                                    )}
-                                  </td>
+                                  {hasPerOrnamentImages && (
+                                    <td className="p-2">
+                                      {imageUrl ? (
+                                        <button
+                                          onClick={() =>
+                                            setViewingImage(imageUrl)
+                                          }
+                                        >
+                                          <img
+                                            src={imageUrl}
+                                            alt={orn.ornament_name}
+                                            className="h-12 w-12 object-cover rounded-md cursor-pointer hover:scale-110 transition-transform"
+                                          />
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs text-gray-600">
+                                          No Img
+                                        </span>
+                                      )}
+                                    </td>
+                                  )}
                                 </tr>
                               );
                             })}
@@ -254,7 +265,22 @@ export default function ViewLoanModal({
                         </table>
                       </div>
                     </section>
-
+                    {singleLoanImageUrl && (
+                      <section>
+                        <SectionHeader title="Loan Ornament Image" />
+                        <div className="flex justify-center items-center mt-2">
+                          <button
+                            onClick={() => setViewingImage(singleLoanImageUrl)}
+                          >
+                            <img
+                              src={singleLoanImageUrl}
+                              alt="Loan Ornament"
+                              className="max-h-40 w-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                            />
+                          </button>
+                        </div>
+                      </section>
+                    )}
                     <section>
                       <SectionHeader title="Payment Schedule" />
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

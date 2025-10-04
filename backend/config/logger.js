@@ -44,9 +44,9 @@ async function syncLogFile(filePath) {
       throw error;
     }
 
-    console.log(`[Supabase Log writter] Successfully synced ${fileName} to Supabase.`);
+    console.log(`]: [Supabase Log writter] Successfully synced ${fileName} to Supabase.`);
   } catch (error) {
-    console.error(`[Supabase Log writter] Failed to sync ${path.basename(filePath)} to Supabase:`, error.message);
+    console.error(`]: [Supabase Log writter] Failed to sync ${path.basename(filePath)} to Supabase:`, error.message);
   }
 }
 
@@ -106,7 +106,7 @@ const startLogSync = () => {
         console.warn('Log sync is already running.');
         return;
     }
-    console.log(`Starting log sync to Supabase every ${SYNC_INTERVAL_MS / 1000} seconds.`);
+    console.log(`]: [Supabase Log writter] Starting log sync to Supabase every ${SYNC_INTERVAL_MS / 1000} seconds.`);
     syncIntervalId = setInterval(syncAllLogs, SYNC_INTERVAL_MS);
 };
 

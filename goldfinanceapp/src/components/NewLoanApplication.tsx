@@ -22,7 +22,6 @@ import { BillPrintModal } from "./BillPrintModal";
 import companyLogo from "../assets/blackmgflogo.png";
 import TotalOrnamentValue from "./TotalOrnamentValue";
 
-const LOCAL_STORAGE_LOAN_ID_KEY = 'activeLoanId';
 const bufferToBase64 = (
   buffer: { type: string; data: number[] } | null | undefined
 ): string | null => {
@@ -43,7 +42,6 @@ const formatCurrency = (value: string | number) => {
 };
 
 interface LoanDetails {
-  loan_id: string;
   processing_fee: string;
   customer_id: string;
   nominee_id: string;
@@ -79,8 +77,6 @@ interface OrnamentRow {
   stone_weight: string;
   net_weight: string;
   karat: string;
-  ornament_image: File | null;
-  image_preview: string | null;
 }
 interface CustomerDisplayDetails {
   customer_uuid: string;
@@ -96,8 +92,7 @@ interface CalculationData {
   goldRates: { karat_name: string; today_rate: string }[];
 }
 
-const initialLoanDetails = (id: string): LoanDetails => ({
-  loan_id: id,
+const initialLoanDetails = (): LoanDetails => ({
   loan_application_uuid: uuidv4(),
   customer_id: "",
   nominee_id: "",
@@ -121,8 +116,6 @@ const initialOrnamentRow = (): OrnamentRow => ({
   stone_weight: "0",
   net_weight: "0.00",
   karat: "",
-  ornament_image: null,
-  image_preview: null,
 });
 const SectionHeader = ({ title }: { title: string }) => (
   <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -144,13 +137,19 @@ const CalcRow = ({
 
 export default function NewLoanApplication() {
   const [loanDetails, setLoanDetails] = useState<LoanDetails>(
-    initialLoanDetails("")
+    initialLoanDetails()
   );
   const [ornamentRows, setOrnamentRows] = useState<OrnamentRow[]>([
     initialOrnamentRow(),
   ]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [loanImage, setLoanImage] = useState<{
+    file: File;
+    preview: string;
+  } | null>(null);
+  const [isImageUploadOpen, setImageUploadOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
+
+  const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [customerDisplayDetails, setCustomerDisplayDetails] =
     useState<CustomerDisplayDetails | null>(null);
@@ -161,10 +160,6 @@ export default function NewLoanApplication() {
   });
   const [masterOrnamentList, setMasterOrnamentList] = useState<any[]>([]);
   const [karatTypes, setKaratTypes] = useState<any[]>([]);
-  const [isImageUploadOpen, setImageUploadOpen] = useState(false);
-  const [editingOrnamentIndex, setEditingOrnamentIndex] = useState<
-    number | null
-  >(null);
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [selectedScheme, setSelectedScheme] =
     useState<FullSchemeDetails | null>(null);
@@ -181,21 +176,12 @@ export default function NewLoanApplication() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        let currentLoanId = localStorage.getItem(LOCAL_STORAGE_LOAN_ID_KEY);
-        
-        if (!currentLoanId) {
-          const nextIdRes = await api.get("/api/loans/next-id");
-          currentLoanId = nextIdRes.data.next_id;
-          localStorage.setItem(LOCAL_STORAGE_LOAN_ID_KEY, currentLoanId ?? "");
-        }
-        const [ goldRatesRes, custRes, ornRes, schemesRes] =
-          await Promise.all([
-            api.get("/api/loans/calculation-data"),
-            api.get(`/api/customers-list`),
-            api.get(`/api/ornaments/all`),
-            api.get("/api/schemes/utils/list"),
-          ]);
-        setLoanDetails(prev => ({ ...prev, loan_id: currentLoanId!}));
+        const [goldRatesRes, custRes, ornRes, schemesRes] = await Promise.all([
+          api.get("/api/loans/calculation-data"),
+          api.get(`/api/customers-list`),
+          api.get(`/api/ornaments/all`),
+          api.get("/api/schemes/utils/list"),
+        ]);
         setCalculationData({ goldRates: goldRatesRes.data.goldRates });
         setCustomers(custRes.data);
         setMasterOrnamentList(ornRes.data);
@@ -296,16 +282,32 @@ export default function NewLoanApplication() {
     setCurrentAddress(e.target.value);
     setUsePermanentAddress(false);
   };
+  const handleImageUpload = (file: File) => {
+    if (loanImage) {
+      URL.revokeObjectURL(loanImage.preview);
+    }
+    setLoanImage({
+      file: file,
+      preview: URL.createObjectURL(file),
+    });
+    setImageUploadOpen(false);
+  };
   const handleReupload = () => {
-    setImageViewerOpen(false); 
+    setImageViewerOpen(false);
     setImageUploadOpen(true);
+  };
+  const handleRemoveImage = () => {
+    if (loanImage) {
+      URL.revokeObjectURL(loanImage.preview);
+      setLoanImage(null);
+    }
   };
   const ornamentsWithValue = useMemo(() => {
     return ornamentRows.map((ornament) => {
       if (
-        !ornament.gross_weight ||
+        !ornament.net_weight ||
         !ornament.karat ||
-        isNaN(parseFloat(ornament.gross_weight))
+        isNaN(parseFloat(ornament.net_weight))
       ) {
         return { ornament_name: ornament.ornament_name, value: 0 };
       }
@@ -316,7 +318,7 @@ export default function NewLoanApplication() {
         return { ornament_name: ornament.ornament_name, value: 0 };
       }
       const value =
-        parseFloat(ornament.gross_weight) * parseFloat(rateInfo.today_rate);
+        parseFloat(ornament.net_weight) * parseFloat(rateInfo.today_rate);
       return { ornament_name: ornament.ornament_name, value };
     });
   }, [ornamentRows, calculationData.goldRates]);
@@ -364,38 +366,22 @@ export default function NewLoanApplication() {
     const updatedRows = [...ornamentRows];
     const currentOrnament = { ...updatedRows[index], [name]: value };
     if (name === "gross_weight" || name === "stone_weight") {
-        const gross = parseFloat(currentOrnament.gross_weight) || 0;
-        const stone = parseFloat(currentOrnament.stone_weight) || 0;
-        const net = Math.max(0, gross - stone);
-        currentOrnament.net_weight = net.toFixed(2);
-        currentOrnament.grams = net.toFixed(2);
+      const gross = parseFloat(currentOrnament.gross_weight) || 0;
+      const stone = parseFloat(currentOrnament.stone_weight) || 0;
+      const net = Math.max(0, gross - stone);
+      currentOrnament.net_weight = net.toFixed(2);
+      currentOrnament.grams = net.toFixed(2);
+    }
+    if (name === "net_weight") {
+      const parsedValue = parseFloat(value) || 0;
+      currentOrnament.grams = parsedValue.toFixed(2);
     }
     updatedRows[index] = currentOrnament;
     setOrnamentRows(updatedRows);
   };
-  const handleOrnamentImageUpload = (file: File) => {
-    if (editingOrnamentIndex !== null) {
-      const updatedRows = [...ornamentRows];
-      if (updatedRows[editingOrnamentIndex].image_preview) {
-        URL.revokeObjectURL(updatedRows[editingOrnamentIndex].image_preview!);
-      }
-      updatedRows[editingOrnamentIndex].ornament_image = file;
-      updatedRows[editingOrnamentIndex].image_preview =
-        URL.createObjectURL(file);
-      setOrnamentRows(updatedRows);
-    }
-  };
   const addOrnamentRow = () =>
     setOrnamentRows([...ornamentRows, initialOrnamentRow()]);
-  const removeOrnamentRow = (index: number) => {
-    if (ornamentRows.length > 1) {
-      const rowToRemove = ornamentRows[index];
-      if (rowToRemove.image_preview) {
-        URL.revokeObjectURL(rowToRemove.image_preview);
-      }
-      setOrnamentRows(ornamentRows.filter((_, i) => i !== index));
-    }
-  };
+
   // const clearOrnamentRow = (index: number) => {
   //   const updatedRows = [...ornamentRows];
   //   if (updatedRows[index].image_preview) {
@@ -475,14 +461,9 @@ export default function NewLoanApplication() {
       karat: row.karat,
     }));
     submissionData.append("ornaments", JSON.stringify(ornamentsForApi));
-    ornamentRows.forEach((ornament, index) => {
-      if (ornament.ornament_image) {
-        submissionData.append(
-          `ornament_image_${index}`,
-          ornament.ornament_image
-        );
-      }
-    });
+    if (loanImage) {
+      submissionData.append("ornament_image", loanImage.file);
+    }
     try {
       const response = await api.post(`/api/loans`, submissionData);
       const newLoanId = response.data.newLoanId;
@@ -501,11 +482,8 @@ export default function NewLoanApplication() {
           net_weight: orn.net_weight,
           grams: orn.grams,
           karat: orn.karat,
-          image_preview: orn.image_preview,
         })),
       };
-      localStorage.removeItem(LOCAL_STORAGE_LOAN_ID_KEY);
-      console.log("Loan created successfully. Cleared activeLoanId from localStorage.");
       setLoanDataForPrint(completeLoanDataForPrint);
       setPrintModalOpen(true);
       // setAlert({ show: true, type: "success", message: `Loan #${newLoanId} created successfully!` });
@@ -562,21 +540,13 @@ export default function NewLoanApplication() {
   //     setIsVerifyingOtp(false);
   //   }
   // };
-  const resetFormForNewLoan = async () => {
-    try {
-      const nextIdRes = await api.get("/api/loans/next-id");
-      setLoanDetails(initialLoanDetails(nextIdRes.data.next_id));
-      setOrnamentRows([initialOrnamentRow()]);
-      setSelectedCustomer(null);
-      setCustomerDisplayDetails(null);
-      setCurrentAddress("");
-    } catch (error) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: "Could not prepare for new loan. Please refresh.",
-      });
-    }
+  const resetFormForNewLoan = () => {
+    handleRemoveImage();
+    setLoanDetails(initialLoanDetails());
+    setOrnamentRows([initialOrnamentRow()]);
+    setSelectedCustomer(null);
+    setCustomerDisplayDetails(null);
+    setCurrentAddress("");
   };
   const totalMonths = useMemo(() => {
     if (!loanDetails.loan_datetime || !loanDetails.due_date) {
@@ -619,24 +589,35 @@ export default function NewLoanApplication() {
     const principal = parseFloat(loanDetails.amount_issued);
     const annualRate = parseFloat(loanDetails.interest_rate);
     if (principal > 0 && annualRate > 0) {
-      const perdayintrestamount = (principal * annualRate / 100) / 365;
-      return perdayintrestamount *15;
+      const perdayintrestamount = (principal * annualRate) / 100 / 365;
+      return perdayintrestamount * 15;
     }
 
     return 0;
   }, [loanDetails.amount_issued, loanDetails.interest_rate]);
-
+  const removeOrnamentRow = (index: number) => {
+    if (ornamentRows.length > 1) {
+      setOrnamentRows(ornamentRows.filter((_, i) => i !== index));
+    }
+  };
   const labelStyle = "block text-sm font-bold text-gray-300 mb-2";
   const inputStyle = `w-full p-2 rounded bg-[#1f2628] h-12 text-white border border-transparent focus:outline-none focus:border-[#c69909] focus:ring-1 focus:ring-[#c69909]`;
 
   return (
     <div className="relative">
-      {isImageViewerOpen && editingOrnamentIndex !== null && ornamentRows[editingOrnamentIndex]?.image_preview && (
-          <OrnamentImageViewerModal
-              imageUrl={ornamentRows[editingOrnamentIndex].image_preview!}
-              onClose={() => setImageViewerOpen(false)}
-              onReupload={handleReupload}
-          />
+      {isImageViewerOpen && loanImage && (
+        <OrnamentImageViewerModal
+          imageUrl={loanImage.preview}
+          onClose={() => setImageViewerOpen(false)}
+          onReupload={handleReupload}
+        />
+      )}
+      {isImageUploadOpen && (
+        <ImageUploadModal
+          isOpen={isImageUploadOpen}
+          onClose={() => setImageUploadOpen(false)}
+          onFileUpload={handleImageUpload}
+        />
       )}
       {alert?.show && (
         <AlertNotification {...alert} onClose={() => setAlert(null)} />
@@ -645,13 +626,6 @@ export default function NewLoanApplication() {
         <ImageViewerModal
           imageUrl={viewingImage}
           onClose={() => setViewingImage(null)}
-        />
-      )}
-      {isImageUploadOpen && (
-        <ImageUploadModal
-          isOpen={isImageUploadOpen}
-          onClose={() => setImageUploadOpen(false)}
-          onFileUpload={handleOrnamentImageUpload}
         />
       )}
       {loanDataForPrint && (
@@ -681,6 +655,7 @@ export default function NewLoanApplication() {
         loading={loading}
         customerDisplayDetails={customerDisplayDetails}
         selectedScheme={selectedScheme}
+        loanImagePreview={loanImage ? loanImage.preview : null}
       />
       {/* {selectedCustomer && (
         <OtpVerificationModal
@@ -700,15 +675,7 @@ export default function NewLoanApplication() {
         <form onSubmit={handleOpenConfirmModal} className="space-y-8">
           <section>
             <SectionHeader title="Loan Details" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div>
-                <label className={labelStyle}>Loan ID</label>
-                <div
-                  className={`${inputStyle} bg-black/20 flex items-center text-gray-400 font-semibold`}
-                >
-                  {loanDetails.loan_id}
-                </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className={labelStyle}>Loan Date & Time*</label>
                 <div className="custom-picker-wrapper">
@@ -769,15 +736,21 @@ export default function NewLoanApplication() {
                 </div>
                 <div>
                   <label className={labelStyle}>Gender</label>
-                  <div className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}>
+                  <div
+                    className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}
+                  >
                     {customerDisplayDetails?.gender || "..."}
                   </div>
                 </div>
                 <div>
                   <label className={labelStyle}>Date of Birth</label>
-                  <div className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}>
+                  <div
+                    className={`${inputStyle} bg-black/20 flex items-center text-gray-400`}
+                  >
                     {customerDisplayDetails?.date_of_birth
-                      ? new Date(customerDisplayDetails.date_of_birth).toLocaleDateString()
+                      ? new Date(
+                          customerDisplayDetails.date_of_birth
+                        ).toLocaleDateString()
                       : "..."}
                   </div>
                 </div>
@@ -800,12 +773,17 @@ export default function NewLoanApplication() {
                 <div className="w-35 h-40 bg-black/20 rounded-md flex items-center justify-center border border-gray-700">
                   {customerDisplayDetails?.customer_image ? (
                     <img
-                      src={bufferToBase64(customerDisplayDetails.customer_image) ?? undefined}
+                      src={
+                        bufferToBase64(customerDisplayDetails.customer_image) ??
+                        undefined
+                      }
                       alt="Customer"
                       className="w-full h-full object-cover rounded-md"
                     />
                   ) : (
-                    <span className="text-gray-500 text-sm p-2 text-center">Select Customer</span>
+                    <span className="text-gray-500 text-sm p-2 text-center">
+                      Select Customer
+                    </span>
                   )}
                 </div>
               </div>
@@ -832,7 +810,10 @@ export default function NewLoanApplication() {
                       className="h-4 w-4 rounded bg-[#1f2628] border-gray-600 text-[#c69909] focus:ring-[#c69909]"
                       disabled={!selectedCustomer}
                     />
-                    <label htmlFor="sameAsPermanent" className="ml-2 text-sm text-gray-300">
+                    <label
+                      htmlFor="sameAsPermanent"
+                      className="ml-2 text-sm text-gray-300"
+                    >
                       Same as permanent
                     </label>
                   </div>
@@ -842,7 +823,11 @@ export default function NewLoanApplication() {
                   onChange={handleCurrentAddressChange}
                   className={inputStyle}
                   rows={3}
-                  placeholder={selectedCustomer ? "Enter current address..." : "Select a customer first"}
+                  placeholder={
+                    selectedCustomer
+                      ? "Enter current address..."
+                      : "Select a customer first"
+                  }
                   disabled={!selectedCustomer}
                 ></textarea>
               </div>
@@ -850,22 +835,50 @@ export default function NewLoanApplication() {
           </section>
           <section>
             <SectionHeader title="Ornament Details" />
-            <div className="space-y-4 mb-6">
-              <div className="flex justify-end">
+            <div className="flex justify-end items-center gap-4 mb-6">
+              {!loanImage ? (
                 <button
                   type="button"
-                  onClick={addOrnamentRow}
-                  className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500"
+                  onClick={() => setImageUploadOpen(true)}
+                  className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors"
                 >
-                  <PlusIcon className="h-5 w-5 mr-2" /> Add Ornament
+                  <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
+                  Add Ornament Image
                 </button>
-              </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setImageViewerOpen(true)}
+                    className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors"
+                  >
+                    <EyeIcon className="h-5 w-5 mr-2" />
+                    View Image
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={addOrnamentRow}
+                className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500"
+              >
+                <PlusIcon className="h-5 w-5 mr-2" /> Add Ornament
+              </button>
+            </div>
+            <div className="space-y-4 mb-6">
               {ornamentRows.map((ornament, index) => (
                 <div
                   key={ornament.key}
                   className="p-4 border border-gray-700/50 rounded-lg"
                 >
-                  <div className="relative grid grid-cols-1 md:grid-cols-[0.5fr_0.5fr_0.8fr_0.3fr_0.5fr_0.5fr_0.5fr_0.5fr_0.2fr] gap-x-2 items-center">
+                  <div
+                    className={clsx(
+                      "relative grid grid-cols-1 gap-x-2 items-center",
+                      ornamentRows.length > 1
+                        ? "md:grid-cols-[0.5fr_0.5fr_0.8fr_0.3fr_0.5fr_0.5fr_0.5fr_0.5fr_0.4fr]"
+                        : "md:grid-cols-[0.5fr_0.5fr_0.8fr_0.3fr_0.5fr_0.5fr_0.5fr_0.5fr]"
+                    )}
+                  >
                     {/* <button
                           type="button"
                           onClick={() => clearOrnamentRow(index)}
@@ -1043,7 +1056,7 @@ export default function NewLoanApplication() {
                         }}
                         className={inputStyle}
                         placeholder="0.00"
-                        required 
+                        required
                       />
                     </div>
                     <div>
@@ -1064,34 +1077,10 @@ export default function NewLoanApplication() {
                       </select>
                     </div>
                     <div>
-                      <label className={labelStyle}>Image*</label>
+                      {ornamentRows.length > 1 && (
+                        <label className={labelStyle}>Remove</label>
+                      )}
                       <div className="flex items-center justify-center gap-2 h-12">
-                        {ornament.image_preview ? (
-                          <button
-                            type="button"
-                            title="View/Re-upload Image"
-                            onClick={() => {
-                              setEditingOrnamentIndex(index);
-                              setImageViewerOpen(true);
-                            }}
-                            className="p-3 text-blue-400 hover:text-white rounded-full bg-[#1f2628] hover:bg-blue-500/20 transition-colors"
-                          >
-                            <EyeIcon className="h-6 w-6" />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            title="Upload Image"
-                            onClick={() => {
-                              setEditingOrnamentIndex(index);
-                              setImageUploadOpen(true);
-                            }}
-                            className="p-3 text-gray-400 hover:text-white rounded-full bg-[#1f2628] hover:bg-gray-700 transition-colors"
-                          >
-                            <ArrowUpTrayIcon className="h-6 w-6" />
-                          </button>
-                        )}
-
                         {ornamentRows.length > 1 && (
                           <button
                             type="button"
