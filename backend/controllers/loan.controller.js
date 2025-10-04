@@ -58,6 +58,7 @@ exports.createLoan = async (req, res) => {
     const createdByUserId = req.user.id; 
     const loanDetails = JSON.parse(req.body.loanDetails);
     const { current_address } = loanDetails;
+    const ornamentImageBuffer = req.file ? req.file.buffer : null;
     if (!loanDetails.customer_id) {
         logger.warn(`[LOAN] Create loan failed: Missing customer_id.`);
         return res.status(400).json({ message: "A customer must be selected." });
@@ -85,33 +86,37 @@ exports.createLoan = async (req, res) => {
         }
         const netAmountIssued = parseFloat(loanDetails.amount_issued);
         const loanQuery = `
-          INSERT INTO datamanagement.loan_details (loan_id, customer_id, interest_rate, current_interest_rate, due_date, loan_datetime, eligible_amount, amount_issued, loan_application_uuid, processing_fee,  net_amount_issued ,scheme_id, loan_to_value )
-          VALUES ($1, $2, $3, $3 , $4, $5, $6, $7, $8, $9, $10 , $11, $12) RETURNING loan_id;
+          INSERT INTO datamanagement.loan_details (
+              customer_id, interest_rate, current_interest_rate, due_date, 
+              loan_datetime, eligible_amount, amount_issued, loan_application_uuid, 
+              processing_fee, net_amount_issued, scheme_id, loan_to_value, ornament_image
+          )
+          VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+          RETURNING loan_id;
         `;
+
         const loanResult = await client.query(loanQuery, [
-            loanDetails.loan_id, loanDetails.customer_id, loanDetails.interest_rate, loanDetails.due_date,
+            loanDetails.customer_id, loanDetails.interest_rate, loanDetails.due_date,
             loanDetails.loan_datetime, loanDetails.eligible_amount, loanDetails.amount_issued, 
-            loanDetails.loan_application_uuid, loanDetails.processing_fee,netAmountIssued, 
-            loanDetails.scheme_id, loanDetails.loan_to_value
+            loanDetails.loan_application_uuid, loanDetails.processing_fee, netAmountIssued, 
+            loanDetails.scheme_id, loanDetails.loan_to_value, ornamentImageBuffer
         ]);
         const newLoanId = loanResult.rows[0].loan_id;
         logger.info(`[LOAN] Intermediate step: Created loan detail with DB loan_id: ${newLoanId}.`);
-        const files = req.files || [];
         for (let i = 0; i < ornaments.length; i++) {
             const ornament = ornaments[i];
-            const file = files.find((f) => f.fieldname === `ornament_image_${i}`);
             const ornamentQuery = `
               INSERT INTO datamanagement.loan_ornament_details 
-              (ornament_id, ornament_type, ornament_name, grams, -- Keep the original grams column
+              (ornament_id, ornament_type, ornament_name, grams,
                quantity, gross_weight, stone_weight, net_weight, 
-               karat, ornament_image, loan_id, material_type)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+               karat, loan_id, material_type)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
             `;
             await client.query(ornamentQuery, [
                 ornament.ornament_id, ornament.ornament_type, ornament.ornament_name,
                 ornament.grams,
                 ornament.quantity, ornament.gross_weight, ornament.stone_weight, ornament.net_weight,
-                ornament.karat, file ? file.buffer : null, newLoanId, ornament.material_type
+                ornament.karat, newLoanId, ornament.material_type
             ]);
         }
         const startDate = new Date(loanDetails.loan_datetime);

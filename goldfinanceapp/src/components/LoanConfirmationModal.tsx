@@ -33,7 +33,8 @@ export default function LoanConfirmationModal({
   ornaments,
   loading,
   customerDisplayDetails,
-  selectedScheme
+  selectedScheme,
+  loanImagePreview
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -44,6 +45,7 @@ export default function LoanConfirmationModal({
   loading: boolean;
   customerDisplayDetails: any;
   selectedScheme : any;
+  loanImagePreview: string | null;
 }) {
   if (!isOpen) return null;
 
@@ -102,9 +104,9 @@ export default function LoanConfirmationModal({
                           <tr>
                             <th className="p-3">Ornament Name</th>
                             <th className="p-3">Material</th>
-                            <th className="p-3">Grams</th>
+                            <th className="p-3">Gross weight</th>
+                            <th className="p-3">Net weight</th>
                             <th className="p-3">Karat</th>
-                            <th className="p-3">Image</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
@@ -112,19 +114,26 @@ export default function LoanConfirmationModal({
                             <tr key={index} className="hover:bg-white/5">
                               <td className="p-3 font-semibold text-white">{orn.ornament_name}</td>
                               <td className="p-3 text-gray-300">{orn.material_type}</td>
-                              <td className="p-3 text-gray-300">{orn.grams}g</td>
+                              <td className="p-3 text-gray-300">{orn.gross_weight}g</td>
+                              <td className="p-3 text-gray-300">{orn.net_weight}g</td>
                               <td className="p-3 text-gray-300">{orn.karat}</td>
-                              <td className="p-3">
-                                {orn.image_preview ? 
-                                  <img src={orn.image_preview} alt="Ornament" className="h-10 w-10 rounded-md object-cover" /> :
-                                  <span className="text-xs text-gray-500">No Img</span>
-                                }
-                              </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
+                    {loanImagePreview && (
+                      <div className="mt-6 flex flex-col items-center">
+                        <p className="text-sm font-semibold text-gray-300 mb-2">
+                          Ornament Image Preview
+                        </p>
+                        <img
+                          src={loanImagePreview}
+                          alt="Pledged Ornaments"
+                          className="max-h-64 w-auto rounded-lg border-2 border-gray-600 object-contain"
+                        />
+                      </div>
+                    )}
                   </section>
 
                   <section>
