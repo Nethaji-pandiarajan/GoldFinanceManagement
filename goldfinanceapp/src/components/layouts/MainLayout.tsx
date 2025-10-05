@@ -19,6 +19,7 @@ import Schemes from "../Schemes";
 import UserManagement from "../UserManagement";
 import SettingsPage from "../SettingsPage";
 import ExpenseManagement from "../ExpenseManagement";
+import AccountsPage from "../AccountsPage";
 interface User {
   id: number;
   username: string;
@@ -68,6 +69,8 @@ export default function MainLayout({ onLogout, user }: MainLayoutProps) {
         return <Schemes />;
       case 'Settings':
         return <SettingsPage />;
+      case "Accounts":
+        return <AccountsPage />;
       default:
         return <Dashboard />;
     }

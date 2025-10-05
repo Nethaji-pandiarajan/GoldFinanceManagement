@@ -146,24 +146,24 @@ const BillPageContent: React.FC<{
             AS Complex, Usilai, Viruveedu - 624220
           </p>
           <p className="text-xs text-black">Phone: 04543295703</p>
+          <p className="text-sm font-bold pt-1">{copyType} Copy</p>
+          <p className="text-sm font-semibold text-black">
+            Loan Registration Agreement
+          </p>
         </div>
         {customerImageUrl ? (
           <img
             src={customerImageUrl}
             alt="Customer"
-            className="w-20 h-24 object-cover  rounded"
+            className="w-20 h-24 object-cover rounded"
           />
         ) : (
           <div className="w-20 h-24"></div>
         )}
       </header>
-      <div className="text-center text-xs font-bold my-1">{copyType} Copy</div>
-      <hr className="border-t-2 border-black" />
-      <h2 className="text-sm font-semibold text-black mt-1 text-center">
-        Loan Registration Agreement
-      </h2>
-      <section className="mt-3 text-sm">
-        <div className="grid grid-cols-2 gap-x-6">
+      <hr className="border-t-2 border-black my-1" />
+      <section className="mt-2 text-sm">
+        <div className="grid grid-cols-3 gap-x-6">
           <DetailRow
             label="Loan ID"
             tamilLabel="கடன் எண்"
@@ -204,25 +204,24 @@ const BillPageContent: React.FC<{
             tamilLabel="முகவரி"
             value={loanData.current_address || loanData.address}
           />
-        </div>
-        <div>
           <DetailRow
             label="Scheme Details"
             tamilLabel="திட்ட விவரங்கள்"
             value={schemeDetailsString}
-            isFullWidth={true}
           />
         </div>
       </section>
+      <hr className="border-t-2 border-black my-1" />
       <section className="my-3">
         <h3 className="text-sm font-bold pb-1 mb-1">
           Pledged Ornaments / அடகு வைக்கப்பட்ட ஆபரணங்கள்
         </h3>
-        <div className="p-2 border-2 border-black text-sm min-h-[60px]">
+        <div className="p-2 text-sm min-h-[30px]">
           <p>{ornamentsString}</p>
         </div>
       </section>
-      <section className="my-3 p-2 border-2 border-black text-sm">
+      <hr className="border-t-2 border-black my-1" />
+      <section className="my-3 p-2 text-sm">
         <div className="grid grid-cols-3 gap-4">
           <DetailRow
             label="Loan Amount Issued"
@@ -284,6 +283,21 @@ const BillPageContent: React.FC<{
               Auction Charges / ஏலக் கட்டணங்கள்:
             </p>
           </div>
+        </div>
+      </section>
+      <hr className="border-t-2 border-black my-1" />
+      <section className="my-4 text-sm grid grid-cols-3 gap-x-4 items-end">
+        <div className="col-span-2">
+          <p>
+            கீழே கொடுக்கப்பட்ட தங்க நகைக் கடன் திட்டத்தின் படி ரூபாய்{" "}
+            {parseFloat(String(loanData.net_amount_issued))} வட்டியுடன் சேர்த்து
+            மாயா கோல்ட் ஃபைனான்சியர்ஸ் அல்லது அவர்களின் உத்தரவின்படி கேட்கும்
+            போது கொடுத்து விடுவேன் என உறுதியளிக்கிறேன்
+          </p>
+        </div>
+        <div className="col-span-1 text-center">
+          <p className="font-semibold">_________________________</p>
+          <p className="font-bold text-xs">Customer Signature</p>
         </div>
       </section>
       <div className="flex-grow flex flex-col justify-end mt-auto">
