@@ -85,10 +85,10 @@ exports.addExpense = async (req, res) => {
         const monthYear = new Date().toISOString().slice(0, 7);
         const insertQuery = `
             INSERT INTO datamanagement.manage_expenses 
-            (item, quantity, description, price, month_year, remaining_balance, added_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
+            (item, quantity, description, price, month_year, remaining_balance, added_by, created_date)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
         `;
-        await client.query(insertQuery, [item, quantity || 1, description || null, expensePrice, monthYear, remainingBalanceSnapshot, addedById]);
+        await client.query(insertQuery, [item, quantity || 1, description || null, expensePrice, monthYear, remainingBalanceSnapshot, addedById, new Date()]);
 
         await client.query("COMMIT");
         logger.info(`[EXPENSE] Successfully added expense '${item}'. New remaining balance snapshot: ${remainingBalanceSnapshot}.`);
