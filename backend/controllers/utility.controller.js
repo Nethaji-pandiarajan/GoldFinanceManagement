@@ -56,6 +56,37 @@ exports.checkPhone = async (req, res) => {
     }
 };
 
+exports.checkProofId = async (req, res) => {
+  const { government_proof, proof_id, customerUuid } = req.body;
+  
+  if (!government_proof || !proof_id) {
+    return res.status(400).json({ message: "Government proof type and ID are required for validation." });
+  }
+
+  try {
+    let query = `
+      SELECT EXISTS (
+        SELECT 1 FROM datamanagement.customers
+        WHERE government_proof = $1 AND proof_id = $2
+    `;
+    const queryParams = [government_proof, proof_id];
+
+    if (customerUuid) {
+      query += ` AND customer_uuid != $3`;
+      queryParams.push(customerUuid);
+    }
+    query += `) AS exists`;
+
+    const result = await db.pool.query(query, queryParams);
+    res.status(200).json({ exists: result.rows[0].exists });
+
+  } catch (error) {
+    logger.error(`[CUSTOMER] Error checking proof ID '${proof_id}' for type '${government_proof}': ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: "Server error while checking proof ID." });
+  }
+};
+
+
 exports.getCustomersList = async (req, res) => {
     logger.info(`[UTILITY] Request received for customer dropdown list.`);
     try {
