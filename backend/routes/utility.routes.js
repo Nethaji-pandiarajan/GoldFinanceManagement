@@ -7,6 +7,7 @@ const karatController = require("../controllers/karat.controller");
 
 router.post("/check-email", utilityController.checkEmail);
 router.post("/check-phone", utilityController.checkPhone);
+router.post('/check-proof-id', utilityController.checkProofId);
 
 router.get("/customers-list", customerController.getCustomersList);
 router.get("/ornaments-list", ornamentController.getOrnamentsList);

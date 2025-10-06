@@ -216,7 +216,7 @@ const BillPageContent: React.FC<{
         <h3 className="text-sm font-bold pb-1 mb-1">
           Pledged Ornaments / அடகு வைக்கப்பட்ட ஆபரணங்கள்
         </h3>
-        <div className="p-2 text-sm min-h-[30px]">
+        <div className="p-2 text-xs min-h-[30px]">
           <p>{ornamentsString}</p>
         </div>
       </section>
@@ -289,7 +289,7 @@ const BillPageContent: React.FC<{
       <section className="my-4 text-sm grid grid-cols-3 gap-x-4 items-end">
         <div className="col-span-2">
           <p>
-            கீழே கொடுக்கப்பட்ட தங்க நகைக் கடன் திட்டத்தின் படி ரூபாய்{" "}
+            மேலே கொடுக்கப்பட்ட தங்க நகைக் கடன் திட்டத்தின் படி ரூபாய்{" "}
             {parseFloat(String(loanData.net_amount_issued))} வட்டியுடன் சேர்த்து
             மாயா கோல்ட் ஃபைனான்சியர்ஸ் அல்லது அவர்களின் உத்தரவின்படி கேட்கும்
             போது கொடுத்து விடுவேன் என உறுதியளிக்கிறேன்

@@ -1,7 +1,12 @@
-//customer.controller.js
 const db = require("../db");
 const { v4: uuidv4 } = require("uuid");
 const { logger } = require("../config/logger");
+
+const areBuffersIdentical = (buffer1, buffer2) => {
+  if (!buffer1 || !buffer2) return false;
+  return buffer1.equals(buffer2);
+};
+
 exports.getAllCustomers = async (req, res) => {
   logger.info(`[CUSTOMER] Request received to GET all customers.`);
   try {
@@ -61,9 +66,39 @@ exports.createCustomer = async (req, res) => {
       .json({ message: "Customer and Nominee names are required." });
   }
 
+  if (phone && nominee_mobile && phone === nominee_mobile) {
+    logger.warn(`[CUSTOMER] Validation failed: Customer phone (${phone}) and Nominee mobile (${nominee_mobile}) are identical.`);
+    return res.status(400).json({ message: "Customer and Nominee mobile numbers cannot be the same." });
+  }
+
+  if (!customerImageFile || !proofImageFile) {
+      logger.warn(`[CUSTOMER] Validation failed: Missing required image for new customer.`);
+      return res.status(400).json({ message: "Both customer image and proof image are required." });
+  }
+  if (areBuffersIdentical(customerImageFile.buffer, proofImageFile.buffer)) {
+    logger.warn(`[CUSTOMER] Validation failed: Customer Image and Proof Image buffers are identical.`);
+    return res.status(400).json({ message: "Customer image and proof image cannot be the same." });
+  }
+
   const client = await db.pool.connect();
   try {
     await client.query("BEGIN");
+
+    if (government_proof && proof_id) {
+      const proofIdCheckQuery = `
+        SELECT EXISTS (
+          SELECT 1 FROM datamanagement.customers
+          WHERE government_proof = $1 AND proof_id = $2
+        ) AS exists;
+      `;
+      const proofIdCheckResult = await client.query(proofIdCheckQuery, [government_proof, proof_id]);
+      if (proofIdCheckResult.rows[0].exists) {
+        logger.warn(`[CUSTOMER] Validation failed: Proof ID '${proof_id}' for type '${government_proof}' already exists.`);
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: `This ${government_proof} with ID ${proof_id} is already registered for another customer.` });
+      }
+    }
+
     const nomineeQuery = `
         INSERT INTO datamanagement.nominees (nominee_name, nominee_mobile, nominee_relationship, nominee_age, nominee_gender, nominee_uuid)
         VALUES ($1, $2, $3, $4, $5, $6) RETURNING nominee_id;
@@ -171,10 +206,34 @@ exports.updateCustomerByUuid = async (req, res) => {
   const proofImageFile = req.files["proof_image"]
     ? req.files["proof_image"][0]
     : null;
-
+  if (phone && nominee_mobile && phone === nominee_mobile) {
+    logger.warn(`[CUSTOMER] Validation failed for customer ${uuid}: Customer phone (${phone}) and Nominee mobile (${nominee_mobile}) are identical.`);
+    return res.status(400).json({ message: "Customer and Nominee mobile numbers cannot be the same." });
+  }
   const client = await db.pool.connect();
   try {
     await client.query("BEGIN");
+    if (customerImageFile && proofImageFile) {
+        if (areBuffersIdentical(customerImageFile.buffer, proofImageFile.buffer)) {
+            logger.warn(`[CUSTOMER] Validation failed for customer ${uuid}: Customer Image and Proof Image are identical for uploaded files.`);
+            await client.query("ROLLBACK");
+            return res.status(400).json({ message: "Customer image and proof image cannot be the same if both are updated." });
+        }
+    }
+    if (government_proof && proof_id) {
+        const proofIdCheckQuery = `
+          SELECT EXISTS (
+            SELECT 1 FROM datamanagement.customers
+            WHERE government_proof = $1 AND proof_id = $2 AND customer_uuid != $3
+          ) AS exists;
+        `;
+        const proofIdCheckResult = await client.query(proofIdCheckQuery, [government_proof, proof_id, uuid]);
+        if (proofIdCheckResult.rows[0].exists) {
+          logger.warn(`[CUSTOMER] Validation failed for customer ${uuid}: Proof ID '${proof_id}' for type '${government_proof}' already exists for another customer.`);
+          await client.query("ROLLBACK");
+          return res.status(400).json({ message: `This ${government_proof} with ID ${proof_id} is already registered for another customer.` });
+        }
+    }
     const parsedNomineeId = parseInt(nominee_id, 10);
     if (!isNaN(parsedNomineeId)) {
       const parsedNomineeAge = nominee_age ? parseInt(nominee_age, 10) : null;

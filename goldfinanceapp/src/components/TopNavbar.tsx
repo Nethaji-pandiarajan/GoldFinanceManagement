@@ -79,7 +79,7 @@ export default function TopNavbar({ onLogout, setActiveItem , user}: TopNavbarPr
       )}
       <header className="bg-[#111315] backdrop-blur-md h-16 flex items-center justify-between px-6 shadow-sm">
         <h1 className="text-2xl font-bold text-[#c69909]">
-          Maaya Gold Finance
+          Maya Gold Finance
         </h1>
         <div className="flex items-center space-x-6">
           <div className="relative" ref={reportsDropdownRef}>
