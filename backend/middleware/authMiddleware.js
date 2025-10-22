@@ -1,12 +1,12 @@
-const jwt = require('jsonwebtoken');
-const logger = require('../config/logger');
+const jwt = require("jsonwebtoken");
+const { logger } = require("../config/logger");
 
-module.exports = function(req, res, next) {
-  const token = req.header('x-auth-token');
+module.exports = function (req, res, next) {
+  const token = req.header("x-auth-token");
 
   if (!token) {
-    logger.warn('[AUTH] Access denied. No token provided.');
-    return res.status(401).json({ message: 'No token, authorization denied' });
+    logger.info("[AUTH] Access denied. No token provided.");
+    return res.status(401).json({ message: "No token, authorization denied" });
   }
 
   try {
@@ -14,7 +14,7 @@ module.exports = function(req, res, next) {
     req.user = decoded.user;
     next();
   } catch (err) {
-    logger.warn(`[AUTH] Invalid token received.`);
-    res.status(401).json({ message: 'Token is not valid' });
+    logger.info(`[AUTH] Invalid token received.`);
+    res.status(401).json({ message: "Token is not valid" });
   }
 };

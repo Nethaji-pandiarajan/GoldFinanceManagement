@@ -42,6 +42,8 @@ exports.getAllLoans = async (req, res) => {
               datamanagement.loan_details ld
           JOIN 
               datamanagement.customers c ON ld.customer_id = c.customer_id
+          WHERE 
+              ld.completion_status = 'Pending'
           ORDER BY 
               ld.loan_datetime DESC;
         `;
@@ -385,7 +387,7 @@ exports.getClosedLoans = async (req, res) => {
           WHERE 
             ld.completion_status = 'Completed'
           ORDER BY 
-            ld.updated_on DESC;
+            ld.created_on DESC;
         `;
         const result = await db.query(query);
         logger.info(`[LOAN] Successfully retrieved ${result.rows.length} CLOSED loans.`);

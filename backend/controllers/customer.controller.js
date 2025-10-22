@@ -41,6 +41,8 @@ exports.createCustomer = async (req, res) => {
     government_proof,
     proof_id,
     date_of_birth,
+    relationship_type,
+    related_person_name,
     nominee_name,
     nominee_mobile,
     nominee_relationship,
@@ -116,8 +118,8 @@ exports.createCustomer = async (req, res) => {
     const customerQuery = `
         INSERT INTO datamanagement.customers (
           customer_name, customer_image, email, phone, gender, description, address,
-          government_proof, proof_id, proof_image, date_of_birth, nominee_id, customer_uuid
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+          government_proof, proof_id, proof_image, date_of_birth, nominee_id, customer_uuid, relationship_type, related_person_name
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
       `;
     await client.query(customerQuery, [
       customer_name,
@@ -133,6 +135,8 @@ exports.createCustomer = async (req, res) => {
       date_of_birth || null,
       newNomineeId,
       uuidv4(),
+      relationship_type || null,
+      related_person_name || null,
     ]);
     logger.info(
       `[CUSTOMER] Successfully CREATED customer '${customer_name}' and nominee '${nominee_name}'.`
@@ -192,6 +196,8 @@ exports.updateCustomerByUuid = async (req, res) => {
     government_proof,
     proof_id,
     date_of_birth,
+    relationship_type,
+    related_person_name,
     nominee_id,
     nominee_name,
     nominee_mobile,
@@ -258,8 +264,10 @@ exports.updateCustomerByUuid = async (req, res) => {
             government_proof = $7, proof_id = $8, date_of_birth = $9,
             customer_image = COALESCE($10, customer_image),
             proof_image = COALESCE($11, proof_image),
+            relationship_type = $12,
+            related_person_name = $13,
             updated_on = CURRENT_TIMESTAMP
-          WHERE customer_uuid = $12;
+          WHERE customer_uuid = $14;
         `;
     await client.query(customerQuery, [
       customer_name,
@@ -273,6 +281,8 @@ exports.updateCustomerByUuid = async (req, res) => {
       date_of_birth,
       customerImageFile ? customerImageFile.buffer : null,
       proofImageFile ? proofImageFile.buffer : null,
+      relationship_type || null,
+      related_person_name || null,
       uuid,
     ]);
     await client.query("COMMIT");

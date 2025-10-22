@@ -45,13 +45,17 @@ export default function ViewCustomerModal({
           </button>
         </div>
 
-        {/* --- RESTRUCTURED Customer Section --- */}
         <section className="mb-6">
           <h3 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
             Customer: {customer.customer_name}
           </h3>
-          {/* Using a 2-column grid for a clean, ordered layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+            {customer.relationship_type && (
+              <DetailItem label="Relationship Type" value={customer.relationship_type} />
+            )}
+            {customer.related_person_name && (
+              <DetailItem label="Related Person Name" value={customer.related_person_name} />
+            )}
             <DetailItem label="Phone Number" value={customer.phone} />
             <DetailItem label="Email Address" value={customer.email} />
             <DetailItem label="Gender" value={customer.gender} />
