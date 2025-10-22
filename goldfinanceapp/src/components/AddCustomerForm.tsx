@@ -57,6 +57,8 @@ export default function AddCustomerForm({
 }: AddCustomerFormProps) {
   const [formData, setFormData] = useState({
     customer_name: "",
+    relationship_type: "",
+    related_person_name: "",
     email: "",
     phone: "",
     gender: "",
@@ -90,6 +92,8 @@ export default function AddCustomerForm({
     if (mode === "edit" && initialData) {
       const {
         customer_name = "",
+        relationship_type = "",
+        related_person_name = "",
         email = "",
         phone = "",
         gender = "",
@@ -107,6 +111,8 @@ export default function AddCustomerForm({
 
       setFormData({
         customer_name,
+        relationship_type,
+        related_person_name,
         email,
         phone,
         gender,
@@ -360,6 +366,32 @@ export default function AddCustomerForm({
                   onChange={handleChange}
                   className={inputStyle}
                   required
+                />
+              </div>
+              <div>
+                <label className={labelStyle}>Relationship (e.g., Son of)</label>
+                <select
+                  name="relationship_type"
+                  value={formData.relationship_type}
+                  onChange={handleChange}
+                  className={inputStyle}
+                >
+                  <option value="">Select if applicable</option>
+                  <option value="S/O">Son of (S/O)</option>
+                  <option value="D/O">Daughter of (D/O)</option>
+                  <option value="W/O">Wife of (W/O)</option>
+                  <option value="H/O">Husband of (H/O)</option>
+                  <option value="C/O">Care of (C/O)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelStyle}>Related Person Name</label>
+                <input
+                  type="text"
+                  name="related_person_name"
+                  value={formData.related_person_name}
+                  onChange={handleChange}
+                  className={inputStyle}
                 />
               </div>
               <div>

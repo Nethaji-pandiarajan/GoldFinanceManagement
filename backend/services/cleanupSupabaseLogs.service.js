@@ -3,7 +3,7 @@ const supabase = require("../config/supabaseClient");
 const { logger } = require("../config/logger");
 
 const BUCKET_NAME = "logs";
-const RETENTION_DAYS = 5;
+const RETENTION_DAYS = 15;
 
 async function cleanupOldLogs() {
   logger.info(
