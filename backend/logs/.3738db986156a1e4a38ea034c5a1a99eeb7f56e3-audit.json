@@ -6,24 +6,9 @@
     "auditLog": "E:\\GoldFinanceManagement\\backend\\logs\\.3738db986156a1e4a38ea034c5a1a99eeb7f56e3-audit.json",
     "files": [
         {
-            "date": 1759429800026,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-10-03.log",
-            "hash": "c271a930c73e407d558adfa3510bb62598bad24b0568b252e2456b2492fe1a34"
-        },
-        {
-            "date": 1759589964663,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-10-04.log",
-            "hash": "24eb25bcd8485e4a81d5cd4f44c48e525e2b4a27853289515ffd5b4537f29d54"
-        },
-        {
-            "date": 1759602600042,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-10-05.log",
-            "hash": "402879e3ed3fd7afc1103dd73bdd089c84f0f0795d646bb6ced7740de4f3f0df"
-        },
-        {
-            "date": 1759689000019,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-10-06.log",
-            "hash": "92dec302573e0bdd654ee4511d6e307561e2a02f600bafb2ec7229f39861d00c"
+            "date": 1761140008515,
+            "name": "E:\\GoldFinanceManagement\\backend\\logs\\application-2025-10-22.log",
+            "hash": "9f38ff75dd35647e2ce1622c119e766c6c7a9da0941442a396dc959362d61919"
         }
     ],
     "hashType": "sha256"

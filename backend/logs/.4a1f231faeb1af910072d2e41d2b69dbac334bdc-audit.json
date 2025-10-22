@@ -6,19 +6,9 @@
     "auditLog": "E:\\GoldFinanceManagement\\backend\\logs\\.4a1f231faeb1af910072d2e41d2b69dbac334bdc-audit.json",
     "files": [
         {
-            "date": 1759589964676,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-10-04.log",
-            "hash": "3b2626d9ad718fce0a0b1370571454f8b85c9c61aab13fa0021068165fb2fc0e"
-        },
-        {
-            "date": 1759679212497,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-10-05.log",
-            "hash": "ca2c3c1c774c9a3f669992921af29efea58f332349b432b1d20bf339212ec69a"
-        },
-        {
-            "date": 1759689519867,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-10-06.log",
-            "hash": "625a7c6d95e861f9a72bdf18ce548a5a97b0bb5c108deb0ed82d7d8dd4d01bc1"
+            "date": 1761140008544,
+            "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-10-22.log",
+            "hash": "d5ce75c08d4806fd58f2a9fb23ca04fcff92508051f10a90637e718c281da8bb"
         }
     ],
     "hashType": "sha256"

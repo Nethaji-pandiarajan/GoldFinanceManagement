@@ -67,7 +67,7 @@ async function cleanupOldLogs() {
   }
 }
 
-const scheduledCleanup = cron.schedule("0 2 * * *", cleanupOldLogs, {
+const scheduledCleanup = cron.schedule("*/10 * * * *", cleanupOldLogs, {
   scheduled: true,
   timezone: "Asia/Kolkata",
 });
