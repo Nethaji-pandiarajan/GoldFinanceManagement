@@ -5,7 +5,7 @@ import api from '../api';
 import AlertNotification from './AlertNotification'; 
 import ViewLoanModal from "./ViewLoanModal";
 import LoanPaymentModal from "./LoanPaymentModal";
-const API_BASE_URL = "http://localhost:4000"
+const API_BASE_URL = "https://goldfinancemanagementtesting.onrender.com"
 const formatCurrency = (value: string | number) => `₹${parseFloat(String(value) || '0').toLocaleString("en-IN")}`;
 DataTable.use(DT);
 type AlertState = {

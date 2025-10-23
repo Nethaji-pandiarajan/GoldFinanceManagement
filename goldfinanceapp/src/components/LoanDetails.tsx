@@ -11,7 +11,7 @@ import ConfirmationDialog from "./ConfirmationDialog";
 import * as XLSX from 'xlsx';
 import { save } from "@tauri-apps/api/dialog";
 import { writeBinaryFile } from "@tauri-apps/api/fs";
-const API_BASE_URL = "http://localhost:4000"
+const API_BASE_URL = "https://goldfinancemanagementtesting.onrender.com"
 DataTable.use(DT);
 
 const formatCurrency = (value: any) => `₹${parseFloat(String(value) || '0').toLocaleString("en-IN")}`;
