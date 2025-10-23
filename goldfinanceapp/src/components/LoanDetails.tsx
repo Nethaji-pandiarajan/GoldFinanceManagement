@@ -2,13 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import api from "../api";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-dt";
-import { PlusIcon } from "@heroicons/react/24/solid";
+import { PlusIcon,ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 import AlertNotification from "./AlertNotification";
 import ViewLoanModal from "./ViewLoanModal";
 import LoanPaymentModal from "./LoanPaymentModal";
 import clsx from 'clsx';
 import ConfirmationDialog from "./ConfirmationDialog";
-const API_BASE_URL = "https://goldfinancemanagementtesting.onrender.com"
+import * as XLSX from 'xlsx';
+import { save } from "@tauri-apps/api/dialog";
+import { writeBinaryFile } from "@tauri-apps/api/fs";
+const API_BASE_URL = "http://localhost:4000"
 DataTable.use(DT);
 
 const formatCurrency = (value: any) => `₹${parseFloat(String(value) || '0').toLocaleString("en-IN")}`;
@@ -78,7 +81,35 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
     dataSrc: "",
     headers: { 'x-auth-token': localStorage.getItem('authToken') || '' }
   };
+  const handleFullDownload = async () => {
+    try {
+      const response = await api.get('/api/loans/export-all');
+      const { loan_details, ornament_details, payment_details } = response.data;
 
+      if (!loan_details || loan_details.length === 0) {
+        setAlert({ show: true, type: 'alert', message: 'No loan data available to export.' });
+        return;
+      }
+      const wb = XLSX.utils.book_new();
+      const ws_loans = XLSX.utils.json_to_sheet(loan_details);
+      XLSX.utils.book_append_sheet(wb, ws_loans, "Loan Details");
+      const ws_ornaments = XLSX.utils.json_to_sheet(ornament_details);
+      XLSX.utils.book_append_sheet(wb, ws_ornaments, "Ornament Details");
+      const ws_payments = XLSX.utils.json_to_sheet(payment_details);
+      XLSX.utils.book_append_sheet(wb, ws_payments, "Payment Details");
+      const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const filePath = await save({ defaultPath: 'all_loan_data.xlsx', filters: [{ name: 'Excel', extensions: ['xlsx'] }] });
+      if (filePath) {
+          await writeBinaryFile({ path: filePath, contents: buffer });
+          setAlert({ show: true, type: 'success', message: 'File saved successfully!' });
+      } else {
+          setAlert(null);
+      }
+    } catch (error) {
+      console.error("Failed to export file:", error);
+      setAlert({ show: true, type: 'error', message: 'Failed to export the file.' });
+    }
+  };
   const tableColumns = [
     { title: "Loan ID", data: "loan_id" },
     { title: "Customer Name", data: "customer_name" },
@@ -142,6 +173,14 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
       <div className="bg-[#111315] p-6 rounded-lg shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-[#c69909]">Loan Details</h1>
+          <div className="flex items-center space-x-4">
+          <button
+              onClick={handleFullDownload}
+              className="inline-flex items-center gap-x-1.5 rounded-md bg-gray-700/50 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600"
+          >
+              <ArrowDownTrayIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+              Export (XLSX)
+          </button>
           <button
             onClick={() => setActiveItem("New Loan Application")}
             className="flex items-center bg-[#c69909] text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-colors"
@@ -149,6 +188,7 @@ export default function LoanDetails({ setActiveItem }: LoanDetailsProps) {
             <PlusIcon className="h-5 w-5 mr-2" />
             New Loan Application
           </button>
+          </div>
         </div>
         <DataTable
           id="loanTable"

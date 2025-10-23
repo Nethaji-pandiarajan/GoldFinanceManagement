@@ -1,7 +1,7 @@
 {
-  "name": "goldfinanceapp",
+  "name": "mayagoldfinance",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -35,7 +35,8 @@
     "recharts": "^3.1.0",
     "styled-components": "^6.1.19",
     "tailwindcss": "^4.1.11",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.14",
@@ -43,6 +44,7 @@
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@types/uuid": "^10.0.0",
+    "@types/xlsx": "^0.0.35",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.6.2",
     "vite": "^6.0.3"

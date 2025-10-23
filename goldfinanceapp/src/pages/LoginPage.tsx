@@ -5,7 +5,7 @@ import axios from "axios";
 import AuthLayout from "../components/AuthLayout";
 // import logo from "../assets/logo.png";
 import mainlogo from "../assets/MgfLogoblack.png"
-import { UserCircleIcon, LockClosedIcon } from "@heroicons/react/24/solid";
+import { UserCircleIcon, LockClosedIcon ,EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 const API_BASE_URL = "https://goldfinancemanagementtesting.onrender.com"
 
@@ -18,11 +18,12 @@ function LoginPage({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const inputStyle =
     "w-full bg-transparent text-white placeholder-white/60 border-0 border-b-2 border-white/40 focus:outline-none focus:ring-0 focus:border-white rounded-none py-2 px-8 transition-colors duration-300";
   const iconStyle =
     "absolute left-1 top-1/2 -translate-y-1/2 h-5 w-5 text-[#c69909] pointer-events-none";
+  const passwordInputStyle = "w-full bg-transparent text-white placeholder-white/60 border-0 border-b-2 border-white/40 focus:outline-none focus:ring-0 focus:border-white rounded-none py-2 pl-8 pr-12 transition-colors duration-300";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +81,7 @@ function LoginPage({
             </div>
           </div>
 
-          <div className="mb-2">
+          <div className="mb-6">
             <label
               className="block text-[#c69909] text-sm font-bold mb-2"
               htmlFor="password"
@@ -90,25 +91,37 @@ function LoginPage({
             <div className="relative">
               <LockClosedIcon className={iconStyle} />
               <input
-                className={inputStyle}
+                className={passwordInputStyle}
                 id="password"
-                type="password"
+                type={isPasswordVisible ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex items-center pr-3"
+                onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+              >
+                {isPasswordVisible ? (
+                  <EyeSlashIcon className="h-5 w-5 text-white" />
+                ) : (
+                  <EyeIcon className="h-5 w-5 text-white" />
+                )}
+              </button>
             </div>
           </div>
 
-          <div className="text-right mb-6">
+          {/* <div className="text-right mb-6">
             <a
               className="inline-block align-baseline font-bold text-sm text-[#c69909] hover:text-white"
               href="#"
             >
               Forgot password?
             </a>
-          </div>
+          </div> */}
           <div className="mb-4">
             <button
               className="w-full text-white font-bold py-3 px-4 transition-all duration-300 rounded-full bg-white/10 backdrop-blur-sm border border-white/50  hover:bg-[#c69909] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"

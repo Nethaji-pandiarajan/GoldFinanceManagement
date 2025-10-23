@@ -57,6 +57,8 @@ export default function AddCustomerForm({
 }: AddCustomerFormProps) {
   const [formData, setFormData] = useState({
     customer_name: "",
+    relationship_type: "",
+    related_person_name: "",
     email: "",
     phone: "",
     gender: "",
@@ -90,6 +92,8 @@ export default function AddCustomerForm({
     if (mode === "edit" && initialData) {
       const {
         customer_name = "",
+        relationship_type = "",
+        related_person_name = "",
         email = "",
         phone = "",
         gender = "",
@@ -107,6 +111,8 @@ export default function AddCustomerForm({
 
       setFormData({
         customer_name,
+        relationship_type,
+        related_person_name,
         email,
         phone,
         gender,
@@ -197,6 +203,35 @@ export default function AddCustomerForm({
       setError("Nominee phone number must be 10 to 13 digits.");
       return false;
     }
+
+    if (formData.phone && formData.nominee_mobile && formData.phone === formData.nominee_mobile) {
+      setError("Customer and Nominee mobile numbers cannot be the same.");
+      return false;
+    }
+
+    if (customerImage && proofImage) {
+        if (customerImage.name === proofImage.name && customerImage.size === proofImage.size) {
+            setError("Customer Image and Proof Image appear to be the same file. Please ensure they are distinct.");
+            return false;
+        }
+    } else if (mode === "add") {
+        if (!customerImage) {
+            setError("Customer image is required.");
+            return false;
+        }
+        if (!proofImage) {
+            setError("Proof image is required.");
+            return false;
+        }
+    }
+    if (!formData.government_proof) {
+      setError("Government Proof Type is required.");
+      return false;
+    }
+    if (!formData.proof_id) {
+      setError("Proof ID Number is required.");
+      return false;
+    }
     if (
       formData.date_of_birth &&
       new Date(formData.date_of_birth) > new Date()
@@ -222,6 +257,19 @@ export default function AddCustomerForm({
         setLoading(false);
         return false;
       }
+      if (formData.government_proof && formData.proof_id) {
+        const proofIdPayload = { 
+          government_proof: formData.government_proof, 
+          proof_id: formData.proof_id, 
+          customerUuid: customerUuid
+        };
+        const proofIdResponse = await api.post("/api/check-proof-id", proofIdPayload);
+        if (proofIdResponse.data.exists) {
+          setError(`This ${formData.government_proof} with ID ${formData.proof_id} is already registered for another customer.`);
+          setLoading(false);
+          return false;
+        }
+      }
     } catch (err) {
       setError(
         "Could not verify details. Please check connection and try again."
@@ -237,6 +285,7 @@ export default function AddCustomerForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     const isFormValid = await validateForm();
     if (!isFormValid) {
       setLoading(false);
@@ -249,7 +298,7 @@ export default function AddCustomerForm({
     if (customerImage) submissionData.append("customer_image", customerImage);
     if (proofImage) submissionData.append("proof_image", proofImage);
 
-    if (mode === "edit") {
+    if (mode === "edit" && initialData?.nominee_id) {
       submissionData.append("nominee_id", initialData.nominee_id);
     }
 
@@ -267,6 +316,7 @@ export default function AddCustomerForm({
       const errorMessage =
         err.response?.data?.message || `Failed to ${mode} customer.`;
       setError(errorMessage);
+      setAlert({ show: true, type: "error", message: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -316,6 +366,32 @@ export default function AddCustomerForm({
                   onChange={handleChange}
                   className={inputStyle}
                   required
+                />
+              </div>
+              <div>
+                <label className={labelStyle}>Relationship (e.g., Son of)</label>
+                <select
+                  name="relationship_type"
+                  value={formData.relationship_type}
+                  onChange={handleChange}
+                  className={inputStyle}
+                >
+                  <option value="">Select if applicable</option>
+                  <option value="S/O">Son of (S/O)</option>
+                  <option value="D/O">Daughter of (D/O)</option>
+                  <option value="W/O">Wife of (W/O)</option>
+                  <option value="H/O">Husband of (H/O)</option>
+                  <option value="C/O">Care of (C/O)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelStyle}>Related Person Name</label>
+                <input
+                  type="text"
+                  name="related_person_name"
+                  value={formData.related_person_name}
+                  onChange={handleChange}
+                  className={inputStyle}
                 />
               </div>
               <div>
@@ -374,6 +450,7 @@ export default function AddCustomerForm({
                   onChange={handleFileChange}
                   className={fileInputStyle}
                   accept="image/*"
+                  required={mode === "add"}
                 />
                 {customerImageStatus === "uploading" && (
                   <p className="text-xs text-yellow-400 mt-1">
@@ -428,6 +505,7 @@ export default function AddCustomerForm({
                   value={formData.government_proof}
                   onChange={handleChange}
                   className={inputStyle}
+                  required
                 >
                   <option value="">Select a Proof Type</option>
                   {proofOptions.map((opt) => (
@@ -446,6 +524,7 @@ export default function AddCustomerForm({
                   value={formData.proof_id}
                   onChange={handleChange}
                   className={inputStyle}
+                  required
                 />
               </div>
               <div>
@@ -456,6 +535,7 @@ export default function AddCustomerForm({
                   onChange={handleFileChange}
                   className={fileInputStyle}
                   accept="image/*"
+                  required={mode === "add"}
                 />
                 {proofImageStatus === "uploading" && (
                   <p className="text-xs text-yellow-400 mt-1">

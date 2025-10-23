@@ -4,7 +4,7 @@ const schemeController = require("../controllers/scheme.controller");
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.use(authMiddleware);
-
+router.get("/export", schemeController.exportAllSchemes);
 router.get("/", schemeController.getAllSchemes);
 router.post("/", schemeController.createScheme);
 router.get("/:id", schemeController.getSchemeById);

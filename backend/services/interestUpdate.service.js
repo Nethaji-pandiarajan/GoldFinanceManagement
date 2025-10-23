@@ -2,7 +2,7 @@
 
 const cron = require("node-cron");
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 const updateInterestForAllPendingLoans = async () => {
   logger.info("[CRON] Starting daily interest update for all pending loans...");
@@ -42,12 +42,19 @@ const updateInterestForAllPendingLoans = async () => {
       if (daysSinceStart >= 0 && daysSinceStart <= 15) {
         const dailyInterest = (principalAmount * initialAnnualRate / 100) / 365;
         interestToUpdate = dailyInterest * 15;
-        logger.info(`[CRON] Loan #${loan.loan_id} (Case 1: 0-15 days): Setting fixed 15-day interest: ${interestToUpdate.toFixed(2)}`);
+        logger.info(`[CRON] Loan #${loan.loan_id} (Case 1: 0-15 days): No changes needed remains interest amount: ${interestToUpdate.toFixed(2)}`);
       }
       else if (daysSinceStart >= 16 && daysSinceStart <= 30) {
         const dailyInterest = (principalAmount * initialAnnualRate / 100) / 365;
         interestToUpdate = dailyInterest * daysSinceStart;
         logger.info(`[CRON] Loan #${loan.loan_id} (Case 2: 16-30 days): Pro-rata interest for ${daysSinceStart} days: ${interestToUpdate.toFixed(2)}`);
+        await client.query(
+            `UPDATE datamanagement.loan_payments 
+             SET interest_amount_due = $1 
+             WHERE payment_id = $2;`,
+            [interestToUpdate.toFixed(2), currentInstallment.payment_id]
+        );
+        logger.info(`[CRON] Loan #${loan.loan_id} (Case 2: 16-30 days): Updated interest_amount_due for payment #${currentInstallment.payment_id} to ${interestToUpdate.toFixed(2)}`);
       }
       else {
         logger.info(`[CRON] Loan #${loan.loan_id} (Case 3: >30 days): Entering overdue installment creation logic.`);

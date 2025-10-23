@@ -1,7 +1,7 @@
 // backend/controllers/machine.controller.js
 
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 // GET all allowed machines
 exports.getAllAllowedMachines = async (req, res) => {

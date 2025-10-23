@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 exports.getAllSchemes = async (req, res) => {
     logger.info(`[SCHEME] Request to GET all schemes.`);
@@ -134,5 +134,33 @@ exports.getSchemesList = async (req, res) => {
     } catch (error) {
         logger.error(`[SCHEME] Error fetching schemes list: ${error.message}`, { stack: error.stack });
         res.status(500).json({ message: "Server error." });
+    }
+};
+
+exports.exportAllSchemes = async (req, res) => {
+    logger.info(`[SCHEME] Request to EXPORT all schemes and slabs.`);
+    try {
+        const query = `
+            SELECT 
+                sd.scheme_id,
+                sd.scheme_name,
+                sd.description,
+                sd.created_by,
+                sd.updated_by,
+                ss.start_day,
+                ss.end_day,
+                ss.interest_rate AS slab_interest_rate
+            FROM 
+                datamanagement.scheme_details sd
+            LEFT JOIN 
+                datamanagement.loan_scheme_slab ss ON sd.scheme_id = ss.scheme_id
+            ORDER BY 
+                sd.scheme_id, ss.start_day;
+        `;
+        const result = await db.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        logger.error(`[SCHEME] Error exporting schemes: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during scheme export." });
     }
 };

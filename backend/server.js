@@ -1,15 +1,8 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config(); 
 const morgan = require("morgan");
-const logger = require("./config/logger"); 
+const  { logger, startLogSync } = require("./config/logger"); 
 const errorHandler = require('./middleware/errorHandler');
-const app = express();
-const PORT = process.env.PORT || 4000;
-app.use(errorHandler);
-app.use(cors());
-app.use(express.json());
-app.use(morgan('combined', { stream: logger.stream }));
 const authRoutes = require("./routes/auth.routes");
 const customerRoutes = require("./routes/customer.routes");
 const ornamentRoutes = require("./routes/ornament.routes");
@@ -23,16 +16,32 @@ const processingRoutes = require("./routes/processing.routes");
 const otpRoutes = require("./routes/otp.routes.js");
 const schemeRoutes = require("./routes/scheme.routes.js");
 const { startInterestUpdateJob } = require('./services/interestUpdate.service');
+const logCleanupJob = require('./services/cleanupSupabaseLogs.service.js');
 const machineRoutes = require("./routes/machine.routes.js");
 const adminRoutes = require("./routes/admin.routes.js");
 const investmentRoutes = require("./routes/investment.routes.js");
+const logsRoutes = require("./routes/logs.routes.js");
+const expenseRoutes = require("./routes/expense.routes.js");
+const accountsRoutes = require("./routes/accounts.routes.js");
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+require("dotenv").config(); 
+
+app.use(errorHandler);
+app.use(cors());
+app.use(express.json());
+app.use(morgan('combined', { stream: logger.stream }));
+
+
 app.use("/api/auth", authRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/ornaments", ornamentRoutes);
 app.use("/api/karats", karatRoutes);
 app.use("/api/gold-rates", goldRateRoutes);
 app.use("/api/loans", loanRoutes);
-app.use("/api/users", userRoutes); 
+app.use("/api/users", userRoutes);  
 app.use("/api", utilityRoutes); 
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/processing", processingRoutes);
@@ -41,7 +50,15 @@ app.use("/api/schemes", schemeRoutes);
 app.use("/api/machines", machineRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/investments", investmentRoutes);
+app.use("/api/logs", logsRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/accounts", accountsRoutes);
+
+
 app.listen(PORT, "0.0.0.0" ,() => {
   console.log(`✅ Backend server is running on http://localhost:${PORT}`);
+  logger.info(`[Server] Server is running on port ${PORT}`);
   startInterestUpdateJob();
+  startLogSync();
+  logCleanupJob.start();
 });

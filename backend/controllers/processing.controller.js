@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 exports.getProcessingData = async (req, res) => {
     logger.info(`[PROCESSING] Request received to GET all processing amounts data.`);

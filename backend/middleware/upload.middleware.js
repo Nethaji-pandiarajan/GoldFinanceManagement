@@ -10,8 +10,9 @@ const customerImages = upload.fields([
 ]);
 
 const loanImages = upload.any();
-
+const singleOrnamentImage = upload.single('ornament_image');
 module.exports = {
   customerImages,
   loanImages,
+  singleOrnamentImage,
 };

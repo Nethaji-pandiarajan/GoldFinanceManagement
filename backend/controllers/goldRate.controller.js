@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 exports.getAllGoldRates = async (req, res) => {
     logger.info(`[GOLD RATE] Request received to GET all karats with their rates.`);
     try {

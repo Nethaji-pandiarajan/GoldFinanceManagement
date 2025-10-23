@@ -5,7 +5,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const checkRole = require("../middleware/roleMiddleware");
 
 router.use(authMiddleware, checkRole(['super_admin']));
-
+router.get("/export", investmentController.exportInvestmentHistory);
 router.get("/", investmentController.getInvestmentData);
 router.post("/", investmentController.addInvestment);
 

@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 
 exports.getInvestmentData = async (req, res) => {
     logger.info(`[INVESTMENT] Request to GET investment history.`);
@@ -77,5 +77,22 @@ exports.addInvestment = async (req, res) => {
         res.status(500).json({ message: "Server error during transaction." });
     } finally {
         client.release();
+    }
+};
+
+exports.exportInvestmentHistory = async (req, res) => {
+    logger.info(`[INVESTMENT] Request to EXPORT investment history.`);
+    try {
+        const query = `
+            SELECT h.id, h.added_on, h.amount_added, h.current_balance, h.remarks, u.user_name as added_by
+            FROM datamanagement.investment_history h
+            JOIN datamanagement.users u ON h.added_by = u.user_id
+            ORDER BY h.id ASC;
+        `;
+        const result = await db.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        logger.error(`[INVESTMENT] Error exporting investment history: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error." });
     }
 };

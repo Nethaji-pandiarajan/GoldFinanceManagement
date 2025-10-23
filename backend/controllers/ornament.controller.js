@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger"); 
+const { logger } = require("../config/logger"); 
 exports.getAllOrnaments = async (req, res) => {
   logger.info(`[ORNAMENT] Request received to GET all ornaments.`);
   try {
@@ -125,4 +125,15 @@ exports.getAllOrnamentsForLoan = async (req, res) => {
     logger.error(`[ORNAMENT] Error fetching all ornaments for loan: ${error.message}`, { stack: error.stack });
     res.status(500).json({ message: "Server error." });
   }
+};
+
+exports.exportAllOrnaments = async (req, res) => {
+    logger.info(`[ORNAMENT] Request to EXPORT all ornament details.`);
+    try {
+        const result = await db.query("SELECT * FROM datamanagement.ornament_details ORDER BY ornament_id ASC");
+        res.json(result.rows);
+    } catch (error) {
+        logger.error(`[ORNAMENT] Error exporting ornaments: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during ornament export." });
+    }
 };

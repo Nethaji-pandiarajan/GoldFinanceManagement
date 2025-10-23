@@ -1,7 +1,12 @@
-//customer.controller.js
 const db = require("../db");
 const { v4: uuidv4 } = require("uuid");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
+
+const areBuffersIdentical = (buffer1, buffer2) => {
+  if (!buffer1 || !buffer2) return false;
+  return buffer1.equals(buffer2);
+};
+
 exports.getAllCustomers = async (req, res) => {
   logger.info(`[CUSTOMER] Request received to GET all customers.`);
   try {
@@ -36,6 +41,8 @@ exports.createCustomer = async (req, res) => {
     government_proof,
     proof_id,
     date_of_birth,
+    relationship_type,
+    related_person_name,
     nominee_name,
     nominee_mobile,
     nominee_relationship,
@@ -61,9 +68,39 @@ exports.createCustomer = async (req, res) => {
       .json({ message: "Customer and Nominee names are required." });
   }
 
+  if (phone && nominee_mobile && phone === nominee_mobile) {
+    logger.warn(`[CUSTOMER] Validation failed: Customer phone (${phone}) and Nominee mobile (${nominee_mobile}) are identical.`);
+    return res.status(400).json({ message: "Customer and Nominee mobile numbers cannot be the same." });
+  }
+
+  if (!customerImageFile || !proofImageFile) {
+      logger.warn(`[CUSTOMER] Validation failed: Missing required image for new customer.`);
+      return res.status(400).json({ message: "Both customer image and proof image are required." });
+  }
+  if (areBuffersIdentical(customerImageFile.buffer, proofImageFile.buffer)) {
+    logger.warn(`[CUSTOMER] Validation failed: Customer Image and Proof Image buffers are identical.`);
+    return res.status(400).json({ message: "Customer image and proof image cannot be the same." });
+  }
+
   const client = await db.pool.connect();
   try {
     await client.query("BEGIN");
+
+    if (government_proof && proof_id) {
+      const proofIdCheckQuery = `
+        SELECT EXISTS (
+          SELECT 1 FROM datamanagement.customers
+          WHERE government_proof = $1 AND proof_id = $2
+        ) AS exists;
+      `;
+      const proofIdCheckResult = await client.query(proofIdCheckQuery, [government_proof, proof_id]);
+      if (proofIdCheckResult.rows[0].exists) {
+        logger.warn(`[CUSTOMER] Validation failed: Proof ID '${proof_id}' for type '${government_proof}' already exists.`);
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: `This ${government_proof} with ID ${proof_id} is already registered for another customer.` });
+      }
+    }
+
     const nomineeQuery = `
         INSERT INTO datamanagement.nominees (nominee_name, nominee_mobile, nominee_relationship, nominee_age, nominee_gender, nominee_uuid)
         VALUES ($1, $2, $3, $4, $5, $6) RETURNING nominee_id;
@@ -81,8 +118,8 @@ exports.createCustomer = async (req, res) => {
     const customerQuery = `
         INSERT INTO datamanagement.customers (
           customer_name, customer_image, email, phone, gender, description, address,
-          government_proof, proof_id, proof_image, date_of_birth, nominee_id, customer_uuid
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+          government_proof, proof_id, proof_image, date_of_birth, nominee_id, customer_uuid, relationship_type, related_person_name
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
       `;
     await client.query(customerQuery, [
       customer_name,
@@ -98,6 +135,8 @@ exports.createCustomer = async (req, res) => {
       date_of_birth || null,
       newNomineeId,
       uuidv4(),
+      relationship_type || null,
+      related_person_name || null,
     ]);
     logger.info(
       `[CUSTOMER] Successfully CREATED customer '${customer_name}' and nominee '${nominee_name}'.`
@@ -157,6 +196,8 @@ exports.updateCustomerByUuid = async (req, res) => {
     government_proof,
     proof_id,
     date_of_birth,
+    relationship_type,
+    related_person_name,
     nominee_id,
     nominee_name,
     nominee_mobile,
@@ -171,10 +212,34 @@ exports.updateCustomerByUuid = async (req, res) => {
   const proofImageFile = req.files["proof_image"]
     ? req.files["proof_image"][0]
     : null;
-
+  if (phone && nominee_mobile && phone === nominee_mobile) {
+    logger.warn(`[CUSTOMER] Validation failed for customer ${uuid}: Customer phone (${phone}) and Nominee mobile (${nominee_mobile}) are identical.`);
+    return res.status(400).json({ message: "Customer and Nominee mobile numbers cannot be the same." });
+  }
   const client = await db.pool.connect();
   try {
     await client.query("BEGIN");
+    if (customerImageFile && proofImageFile) {
+        if (areBuffersIdentical(customerImageFile.buffer, proofImageFile.buffer)) {
+            logger.warn(`[CUSTOMER] Validation failed for customer ${uuid}: Customer Image and Proof Image are identical for uploaded files.`);
+            await client.query("ROLLBACK");
+            return res.status(400).json({ message: "Customer image and proof image cannot be the same if both are updated." });
+        }
+    }
+    if (government_proof && proof_id) {
+        const proofIdCheckQuery = `
+          SELECT EXISTS (
+            SELECT 1 FROM datamanagement.customers
+            WHERE government_proof = $1 AND proof_id = $2 AND customer_uuid != $3
+          ) AS exists;
+        `;
+        const proofIdCheckResult = await client.query(proofIdCheckQuery, [government_proof, proof_id, uuid]);
+        if (proofIdCheckResult.rows[0].exists) {
+          logger.warn(`[CUSTOMER] Validation failed for customer ${uuid}: Proof ID '${proof_id}' for type '${government_proof}' already exists for another customer.`);
+          await client.query("ROLLBACK");
+          return res.status(400).json({ message: `This ${government_proof} with ID ${proof_id} is already registered for another customer.` });
+        }
+    }
     const parsedNomineeId = parseInt(nominee_id, 10);
     if (!isNaN(parsedNomineeId)) {
       const parsedNomineeAge = nominee_age ? parseInt(nominee_age, 10) : null;
@@ -199,8 +264,10 @@ exports.updateCustomerByUuid = async (req, res) => {
             government_proof = $7, proof_id = $8, date_of_birth = $9,
             customer_image = COALESCE($10, customer_image),
             proof_image = COALESCE($11, proof_image),
+            relationship_type = $12,
+            related_person_name = $13,
             updated_on = CURRENT_TIMESTAMP
-          WHERE customer_uuid = $12;
+          WHERE customer_uuid = $14;
         `;
     await client.query(customerQuery, [
       customer_name,
@@ -214,6 +281,8 @@ exports.updateCustomerByUuid = async (req, res) => {
       date_of_birth,
       customerImageFile ? customerImageFile.buffer : null,
       proofImageFile ? proofImageFile.buffer : null,
+      relationship_type || null,
+      related_person_name || null,
       uuid,
     ]);
     await client.query("COMMIT");
@@ -355,4 +424,41 @@ exports.checkPhone = async (req, res) => {
       .status(500)
       .json({ message: "Server error while checking phone number." });
   }
+};
+exports.getAllCustomersForExport = async (req, res) => {
+    logger.info(`[CUSTOMER] Request received to GET all customer data for export.`);
+    try {
+        const query = `
+          SELECT 
+              c.customer_id,
+              c.customer_uuid,
+              c.customer_name,
+              c.email,
+              c.phone AS phone_number,
+              c.gender,
+              c.description,
+              c.address,
+              c.government_proof,
+              c.proof_id,
+              c.date_of_birth,
+              c.current_address,
+              c.nominee_id,
+              n.nominee_name,
+              n.nominee_relationship,
+              n.nominee_mobile,
+              n.nominee_age,
+              n.nominee_gender
+          FROM 
+              datamanagement.customers c
+          LEFT JOIN 
+              datamanagement.nominees n ON c.nominee_id = n.nominee_id
+          ORDER BY c.customer_id ASC;
+        `;
+        const customers = await db.query(query);
+        logger.info(`[CUSTOMER] Successfully retrieved ${customers.rows.length} full customer records for export.`);
+        res.json(customers.rows);
+    } catch (error) {
+        logger.error(`[CUSTOMER] Error fetching customers for export: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error while fetching customer data for export." });
+    }
 };

@@ -1,5 +1,5 @@
 const db = require("../db");
-const logger = require("../config/logger");
+const { logger } = require("../config/logger");
 const axios = require('axios');
 exports.getNextLoanId = async (req, res) => {
     logger.info(`[LOAN] Request received to GET next loan ID.`);
@@ -42,6 +42,8 @@ exports.getAllLoans = async (req, res) => {
               datamanagement.loan_details ld
           JOIN 
               datamanagement.customers c ON ld.customer_id = c.customer_id
+          WHERE 
+              ld.completion_status = 'Pending'
           ORDER BY 
               ld.loan_datetime DESC;
         `;
@@ -58,6 +60,7 @@ exports.createLoan = async (req, res) => {
     const createdByUserId = req.user.id; 
     const loanDetails = JSON.parse(req.body.loanDetails);
     const { current_address } = loanDetails;
+    const ornamentImageBuffer = req.file ? req.file.buffer : null;
     if (!loanDetails.customer_id) {
         logger.warn(`[LOAN] Create loan failed: Missing customer_id.`);
         return res.status(400).json({ message: "A customer must be selected." });
@@ -85,33 +88,37 @@ exports.createLoan = async (req, res) => {
         }
         const netAmountIssued = parseFloat(loanDetails.amount_issued);
         const loanQuery = `
-          INSERT INTO datamanagement.loan_details (loan_id, customer_id, interest_rate, current_interest_rate, due_date, loan_datetime, eligible_amount, amount_issued, loan_application_uuid, processing_fee,  net_amount_issued ,scheme_id, loan_to_value )
-          VALUES ($1, $2, $3, $3 , $4, $5, $6, $7, $8, $9, $10 , $11, $12) RETURNING loan_id;
+          INSERT INTO datamanagement.loan_details (
+              customer_id, interest_rate, current_interest_rate, due_date, 
+              loan_datetime, eligible_amount, amount_issued, loan_application_uuid, 
+              processing_fee, net_amount_issued, scheme_id, loan_to_value, ornament_image
+          )
+          VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+          RETURNING loan_id;
         `;
+
         const loanResult = await client.query(loanQuery, [
-            loanDetails.loan_id, loanDetails.customer_id, loanDetails.interest_rate, loanDetails.due_date,
+            loanDetails.customer_id, loanDetails.interest_rate, loanDetails.due_date,
             loanDetails.loan_datetime, loanDetails.eligible_amount, loanDetails.amount_issued, 
-            loanDetails.loan_application_uuid, loanDetails.processing_fee,netAmountIssued, 
-            loanDetails.scheme_id, loanDetails.loan_to_value
+            loanDetails.loan_application_uuid, loanDetails.processing_fee, netAmountIssued, 
+            loanDetails.scheme_id, loanDetails.loan_to_value, ornamentImageBuffer
         ]);
         const newLoanId = loanResult.rows[0].loan_id;
         logger.info(`[LOAN] Intermediate step: Created loan detail with DB loan_id: ${newLoanId}.`);
-        const files = req.files || [];
         for (let i = 0; i < ornaments.length; i++) {
             const ornament = ornaments[i];
-            const file = files.find((f) => f.fieldname === `ornament_image_${i}`);
             const ornamentQuery = `
               INSERT INTO datamanagement.loan_ornament_details 
-              (ornament_id, ornament_type, ornament_name, grams, -- Keep the original grams column
+              (ornament_id, ornament_type, ornament_name, grams,
                quantity, gross_weight, stone_weight, net_weight, 
-               karat, ornament_image, loan_id, material_type)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+               karat, loan_id, material_type)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
             `;
             await client.query(ornamentQuery, [
                 ornament.ornament_id, ornament.ornament_type, ornament.ornament_name,
                 ornament.grams,
                 ornament.quantity, ornament.gross_weight, ornament.stone_weight, ornament.net_weight,
-                ornament.karat, file ? file.buffer : null, newLoanId, ornament.material_type
+                ornament.karat, newLoanId, ornament.material_type
             ]);
         }
         const startDate = new Date(loanDetails.loan_datetime);
@@ -330,6 +337,7 @@ exports.getPendingLoans = async (req, res) => {
           SELECT
             ld.loan_id,
             c.customer_name,
+            s.scheme_name,
             c.phone,
             ld.net_amount_issued AS total_principal_amount, -- Renamed for clarity
             ld.principal_amount_paid,
@@ -342,6 +350,8 @@ exports.getPendingLoans = async (req, res) => {
             datamanagement.loan_details ld
           JOIN 
             datamanagement.customers c ON ld.customer_id = c.customer_id
+          LEFT JOIN
+            datamanagement.scheme_details s ON ld.scheme_id = s.scheme_id
           WHERE 
             ld.completion_status = 'Pending'
           ORDER BY 
@@ -377,7 +387,7 @@ exports.getClosedLoans = async (req, res) => {
           WHERE 
             ld.completion_status = 'Completed'
           ORDER BY 
-            ld.updated_on DESC;
+            ld.created_on DESC;
         `;
         const result = await db.query(query);
         logger.info(`[LOAN] Successfully retrieved ${result.rows.length} CLOSED loans.`);
@@ -457,5 +467,44 @@ exports.sendPaymentReminder = async (req, res) => {
     } catch (error) {
         logger.error(`[LOAN] Failed to send reminder for Loan ID #${loan_id}: ${error.message}`);
         res.status(500).json({ message: "Failed to send payment reminder." });
+    }
+};
+
+exports.exportAllLoanData = async (req, res) => {
+    logger.info(`[LOAN] Request to EXPORT ALL loan data (details, ornaments, payments).`);
+    const client = await db.pool.connect();
+    try {
+        const loanDetailsQuery = `
+            SELECT ld.*, c.customer_name 
+            FROM datamanagement.loan_details ld
+            JOIN datamanagement.customers c ON ld.customer_id = c.customer_id
+            ORDER BY ld.loan_id ASC;
+        `;
+        
+        const ornamentDetailsQuery = `
+            SELECT * FROM datamanagement.loan_ornament_details ORDER BY loan_id ASC, loan_ornament_id ASC;
+        `;
+
+        const paymentDetailsQuery = `
+            SELECT * FROM datamanagement.loan_payments ORDER BY loan_id ASC, payment_month ASC;
+        `;
+
+        const [loanDetailsResult, ornamentDetailsResult, paymentDetailsResult] = await Promise.all([
+            client.query(loanDetailsQuery),
+            client.query(ornamentDetailsQuery),
+            client.query(paymentDetailsQuery)
+        ]);
+
+        res.json({
+            loan_details: loanDetailsResult.rows,
+            ornament_details: ornamentDetailsResult.rows,
+            payment_details: paymentDetailsResult.rows
+        });
+
+    } catch (error) {
+        logger.error(`[LOAN] Error exporting all loan data: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ message: "Server error during full loan data export." });
+    } finally {
+        client.release();
     }
 };
