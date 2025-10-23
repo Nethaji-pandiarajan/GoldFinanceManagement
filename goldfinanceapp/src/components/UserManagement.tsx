@@ -8,7 +8,7 @@ import EditUserModal from "./EditUserModal";
 import CreateUserForm from "./CreateUserForm";
 import PasswordConfirmationModal from "./PasswordConfirmationModal";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "http://localhost:4000";
 DataTable.use(DT);
 type ConfirmingAction = {
   type: 'add' | 'edit' | 'delete';
