@@ -43,7 +43,7 @@ function App() {
     setErrorMessage("");
     try {
       // const backendUrl = "https://goldfinancemanagementtesting.onrender.com/api/machines";
-      const backendUrl = "https://goldfinancemanagementtesting.onrender.comnagementtesting.onrender.com/api/machines";
+      const backendUrl = "https://goldfinancemanagementtesting.onrender.com/api/machines";
       await axios.post(backendUrl, {
         cpu_serial: machineInfo.cpu_brand,
         mac_address: machineInfo.mac_address,
