@@ -14,7 +14,7 @@ import { Menu, Transition } from "@headlessui/react";
 import * as XLSX from "xlsx";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile, writeBinaryFile } from "@tauri-apps/api/fs";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "http://localhost:4000";
 DataTable.use(DT);
 
 export default function TotalInvestments() {

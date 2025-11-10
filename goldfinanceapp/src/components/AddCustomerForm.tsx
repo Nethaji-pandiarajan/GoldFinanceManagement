@@ -40,6 +40,16 @@ const relationshipOptions = [
   "Other",
 ];
 
+const proofIdPlaceholders: { [key: string]: string } = {
+  "Aadhaar Card": "e.g., 1234 5678 9012",
+  "PAN Card": "e.g., ABCDE1234F",
+  "Driving License": "e.g., MH1420110012345",
+  "Passport": "e.g., A1234567",
+  "Voter ID": "e.g., ABC1234567",
+  "Ration Card": "Enter Ration Card Number",
+  "Birth Certificate": "Enter Registration Number",
+};
+
 type AddCustomerFormProps = {
   mode: "add" | "edit";
   initialData?: any;
@@ -141,9 +151,46 @@ export default function AddCustomerForm({
     >
   ) => {
     const { name, value } = e.target;
+    if (name === "government_proof") {
+      setFormData({ ...formData, government_proof: value, proof_id: "" });
+      return;
+    }
+
     if (name === "phone" || name === "nominee_mobile") {
       const numericValue = value.replace(/[^0-9]/g, "");
       setFormData({ ...formData, [name]: numericValue });
+    } else if (name === "proof_id") {
+      let processedValue = value;
+      switch (formData.government_proof) {
+        case "Aadhaar Card":
+          processedValue = value.replace(/[^0-9]/g, "").slice(0, 12);
+          break;
+        case "PAN Card":
+          processedValue = value
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .toUpperCase()
+            .slice(0, 10);
+          break;
+        case "Passport":
+          processedValue = value
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .toUpperCase()
+            .slice(0, 8);
+          break;
+        case "Voter ID":
+          processedValue = value
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .toUpperCase()
+            .slice(0, 10);
+          break;
+        case "Driving License":
+          processedValue = value.slice(0, 20);
+          break;
+        default:
+          processedValue = value;
+          break;
+      }
+      setFormData({ ...formData, [name]: processedValue });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -188,10 +235,13 @@ export default function AddCustomerForm({
     };
     reader.readAsDataURL(file);
   };
+
   const validateForm = async (): Promise<boolean> => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address if you choose to provide one.");
+      setError(
+        "Please enter a valid email address if you choose to provide one."
+      );
       return false;
     }
     const phoneRegex = /^\d{10,13}$/;
@@ -204,25 +254,34 @@ export default function AddCustomerForm({
       return false;
     }
 
-    if (formData.phone && formData.nominee_mobile && formData.phone === formData.nominee_mobile) {
+    if (
+      formData.phone &&
+      formData.nominee_mobile &&
+      formData.phone === formData.nominee_mobile
+    ) {
       setError("Customer and Nominee mobile numbers cannot be the same.");
       return false;
     }
 
     if (customerImage && proofImage) {
-        if (customerImage.name === proofImage.name && customerImage.size === proofImage.size) {
-            setError("Customer Image and Proof Image appear to be the same file. Please ensure they are distinct.");
-            return false;
-        }
+      if (
+        customerImage.name === proofImage.name &&
+        customerImage.size === proofImage.size
+      ) {
+        setError(
+          "Customer Image and Proof Image appear to be the same file. Please ensure they are distinct."
+        );
+        return false;
+      }
     } else if (mode === "add") {
-        if (!customerImage) {
-            setError("Customer image is required.");
-            return false;
-        }
-        if (!proofImage) {
-            setError("Proof image is required.");
-            return false;
-        }
+      if (!customerImage) {
+        setError("Customer image is required.");
+        return false;
+      }
+      if (!proofImage) {
+        setError("Proof image is required.");
+        return false;
+      }
     }
     if (!formData.government_proof) {
       setError("Government Proof Type is required.");
@@ -232,6 +291,48 @@ export default function AddCustomerForm({
       setError("Proof ID Number is required.");
       return false;
     }
+
+    let isProofIdValid = true;
+    let proofIdError = "";
+
+    switch (formData.government_proof) {
+        case "Aadhaar Card":
+            const aadhaarRegex = /^\d{12}$/;
+            if (!aadhaarRegex.test(formData.proof_id)) {
+                isProofIdValid = false;
+                proofIdError = "Aadhaar Card ID must be exactly 12 digits.";
+            }
+            break;
+        case "PAN Card":
+            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+            if (!panRegex.test(formData.proof_id)) {
+                isProofIdValid = false;
+                proofIdError = "PAN Card must be in the format ABCDE1234F.";
+            }
+            break;
+        case "Passport":
+            const passportRegex = /^[A-Z][0-9]{7}$/;
+            if (!passportRegex.test(formData.proof_id)) {
+                isProofIdValid = false;
+                proofIdError = "Passport number must be 1 letter followed by 7 digits.";
+            }
+            break;
+        case "Voter ID":
+            const voterIdRegex = /^[A-Z]{3}[0-9]{7}$/;
+            if (!voterIdRegex.test(formData.proof_id)) {
+                isProofIdValid = false;
+                proofIdError = "Voter ID is not in a valid format (e.g., ABC1234567).";
+            }
+            break;
+        default:
+            break;
+    }
+
+    if (!isProofIdValid) {
+        setError(proofIdError);
+        return false;
+    }
+
     if (
       formData.date_of_birth &&
       new Date(formData.date_of_birth) > new Date()
@@ -258,14 +359,19 @@ export default function AddCustomerForm({
         return false;
       }
       if (formData.government_proof && formData.proof_id) {
-        const proofIdPayload = { 
-          government_proof: formData.government_proof, 
-          proof_id: formData.proof_id, 
-          customerUuid: customerUuid
+        const proofIdPayload = {
+          government_proof: formData.government_proof,
+          proof_id: formData.proof_id,
+          customerUuid: customerUuid,
         };
-        const proofIdResponse = await api.post("/api/check-proof-id", proofIdPayload);
+        const proofIdResponse = await api.post(
+          "/api/check-proof-id",
+          proofIdPayload
+        );
         if (proofIdResponse.data.exists) {
-          setError(`This ${formData.government_proof} with ID ${formData.proof_id} is already registered for another customer.`);
+          setError(
+            `This ${formData.government_proof} with ID ${formData.proof_id} is already registered for another customer.`
+          );
           setLoading(false);
           return false;
         }
@@ -282,6 +388,7 @@ export default function AddCustomerForm({
     return true;
   };
   const today = new Date().toISOString().split("T")[0];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -328,7 +435,7 @@ export default function AddCustomerForm({
   const labelStyle = "block text-sm text-gray-300 mb-1";
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50">
       <div className="relative bg-[#111315] rounded-lg shadow-xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
@@ -369,7 +476,9 @@ export default function AddCustomerForm({
                 />
               </div>
               <div>
-                <label className={labelStyle}>Relationship (e.g., Son of)</label>
+                <label className={labelStyle}>
+                  Relationship (e.g., Son of)
+                </label>
                 <select
                   name="relationship_type"
                   value={formData.relationship_type}
@@ -418,12 +527,13 @@ export default function AddCustomerForm({
                 />
               </div>
               <div>
-                <label className={labelStyle}>Gender</label>
+                <label className={labelStyle}>Gender*</label>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
                   className={inputStyle}
+                  required
                 >
                   <option value="">Select</option>
                   <option value="Male">Male</option>
@@ -432,7 +542,7 @@ export default function AddCustomerForm({
                 </select>
               </div>
               <div>
-                <label className={labelStyle}>Date of Birth</label>
+                <label className={labelStyle}>Date of Birth*</label>
                 <input
                   type="date"
                   name="date_of_birth"
@@ -440,10 +550,11 @@ export default function AddCustomerForm({
                   onChange={handleChange}
                   className={inputStyle}
                   max={today}
+                  required
                 />
               </div>
               <div>
-                <label className={labelStyle}>Customer Image</label>
+                <label className={labelStyle}>Customer Image*</label>
                 <input
                   type="file"
                   name="customer_image"
@@ -471,13 +582,14 @@ export default function AddCustomerForm({
                 </div>
               )}
               <div className="md:col-span-3">
-                <label className={labelStyle}>Address</label>
+                <label className={labelStyle}>Address*</label>
                 <textarea
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
                   className={inputStyle}
                   rows={2}
+                  required
                 ></textarea>
               </div>
               <div className="md:col-span-3">
@@ -499,7 +611,7 @@ export default function AddCustomerForm({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className={labelStyle}>Proof Type</label>
+                <label className={labelStyle}>Proof Type*</label>
                 <select
                   name="government_proof"
                   value={formData.government_proof}
@@ -517,7 +629,7 @@ export default function AddCustomerForm({
               </div>
 
               <div>
-                <label className={labelStyle}>Proof ID Number</label>
+                <label className={labelStyle}>Proof ID Number*</label>
                 <input
                   type="text"
                   name="proof_id"
@@ -525,10 +637,13 @@ export default function AddCustomerForm({
                   onChange={handleChange}
                   className={inputStyle}
                   required
+                  placeholder={
+                    proofIdPlaceholders[formData.government_proof] || "Select proof type first"
+                  }
                 />
               </div>
               <div>
-                <label className={labelStyle}>Proof Image</label>
+                <label className={labelStyle}>Proof Image*</label>
                 <input
                   type="file"
                   name="proof_image"
