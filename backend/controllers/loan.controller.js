@@ -160,7 +160,7 @@ exports.createLoan = async (req, res) => {
         res.status(201).json({ message: `Loan #${newLoanId} created successfully!`, newLoanId });
     } catch (error) {
         await client.query("ROLLBACK");
-        logger.error(`[LOAN] Error CREATING loan: ${error.message}`, { stack: error.stack });
+        logger.error(`[LOAN] Error CREATING loan: ${error.message}`, { stack: error.stack },error);
         res.status(500).json({ message: "Server error during loan creation." });
     } finally {
         client.release();
