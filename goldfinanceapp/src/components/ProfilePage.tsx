@@ -49,7 +49,7 @@ export default function ProfilePage() {
     if (!profile) return;
     setSaving(true);
     try {
-      await api.put(`/api/users/me`);
+      await api.put(`/api/users/me`,profile);
       setAlert({ show: true, type: 'success', message: 'Profile updated successfully!' });
     } catch (err: any) {
       setAlert({ show: true, type: 'error', message: err.response?.data?.message || 'Failed to update profile.' });
