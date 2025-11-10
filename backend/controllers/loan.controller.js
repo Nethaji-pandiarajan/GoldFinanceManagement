@@ -59,6 +59,7 @@ exports.getAllLoans = async (req, res) => {
 exports.createLoan = async (req, res) => {
     const createdByUserId = req.user.id; 
     const loanDetails = JSON.parse(req.body.loanDetails);
+    loanDetails.processing_fee = parseFloat(loanDetails.processing_fee) || 0;
     const { current_address } = loanDetails;
     const ornamentImageBuffer = req.file ? req.file.buffer : null;
     if (!loanDetails.customer_id) {
