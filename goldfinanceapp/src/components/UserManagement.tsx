@@ -8,7 +8,7 @@ import EditUserModal from "./EditUserModal";
 import CreateUserForm from "./CreateUserForm";
 import PasswordConfirmationModal from "./PasswordConfirmationModal";
 
-const API_BASE_URL = "https://goldfinancemanagementtesting.onrender.com";
+const API_BASE_URL = "http://localhost:4000";
 DataTable.use(DT);
 type ConfirmingAction = {
   type: 'add' | 'edit' | 'delete';
