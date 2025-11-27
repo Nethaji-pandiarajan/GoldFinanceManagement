@@ -58,9 +58,25 @@ export default function LoanPaymentModal({
 
       const isNewView = daysSinceStart <= 30;
       setIsNewLoanView(isNewView);
-      const payableInstallments = loan.payments
-        .filter((p: PaymentInstallment) => ['Pending', 'Overdue'].includes(p.payment_status))
-        .sort((a: PaymentInstallment, b: PaymentInstallment) => new Date(a.payment_month).getTime() - new Date(b.payment_month).getTime());
+      let payableInstallments = loan.payments
+        .filter((p: PaymentInstallment) => ['Pending', 'Overdue'].includes(p.payment_status));
+
+      if (loan.completion_status !== 'Completed') {
+          const allPaymentsSorted = [...loan.payments].sort(
+            (a: PaymentInstallment, b: PaymentInstallment) => 
+              new Date(a.payment_month).getTime() - new Date(b.payment_month).getTime()
+          );
+          const lastPayment = allPaymentsSorted[allPaymentsSorted.length - 1];
+
+          if (lastPayment && lastPayment.payment_status === 'Paid') {
+             if (!payableInstallments.find((p: any) => p.payment_id === lastPayment.payment_id)) {
+                 payableInstallments.push(lastPayment);
+             }
+          }
+      }
+      payableInstallments.sort((a: PaymentInstallment, b: PaymentInstallment) => 
+        new Date(a.payment_month).getTime() - new Date(b.payment_month).getTime()
+      );
       setAvailableInstallments(payableInstallments);
       if (payableInstallments.length > 0) {
         setSelectedInstallment(payableInstallments[0]);
@@ -69,6 +85,10 @@ export default function LoanPaymentModal({
       }
     }
   }, [loan]);
+
+  const isInterestSettled = selectedInstallment
+    ? parseFloat(selectedInstallment.interest_amount_due) <= 0 || selectedInstallment.payment_status === 'Paid'
+    : false
 
   const handleInstallmentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const paymentId = parseInt(e.target.value, 10);
@@ -104,7 +124,17 @@ export default function LoanPaymentModal({
 
     const principalToPay = parseFloat(formData.principal_payment) || 0;
     const interestToPay = parseFloat(formData.interest_payment) || 0;
+    const maxPrincipalPayable = parseFloat(selectedInstallment.loan_balance);
 
+    if (principalToPay > maxPrincipalPayable) {
+       setAlert({
+        show: true,
+        type: "error",
+        message: `Principal payment cannot exceed the remaining balance of ₹${maxPrincipalPayable.toLocaleString("en-IN")}`,
+      });
+      return;
+    }
+    
     if (principalToPay <= 0 && interestToPay <= 0) {
       setAlert({
         show: true,
@@ -223,11 +253,17 @@ export default function LoanPaymentModal({
                 />
               </div>
               <div>
-                <label className={labelStyle}>Interest Amount to Pay (₹)</label>
+                <label className={labelStyle}>Interest Amount to Pay (₹)
+                {isInterestSettled && (
+                    <span className="text-xs font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                      ✓ Paid
+                    </span>
+                  )}
+                </label>
                 <input
                   type="number"
                   name="interest_payment"
-                  value={formData.interest_payment}
+                  value={isInterestSettled ? "" : formData.interest_payment}
                   onChange={handleChange}
                   className={inputStyle}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
@@ -236,8 +272,9 @@ export default function LoanPaymentModal({
                       e.preventDefault();
                     }
                   }}
-                  placeholder="0.00"
+                  placeholder={isInterestSettled ? "Interest already settled" : "0.00"}
                   step="0.01"
+                  disabled={isInterestSettled}
                 />
               </div>
               <div>
