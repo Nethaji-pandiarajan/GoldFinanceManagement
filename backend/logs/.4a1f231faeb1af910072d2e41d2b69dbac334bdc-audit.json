@@ -6,9 +6,9 @@
     "auditLog": "E:\\GoldFinanceManagement\\backend\\logs\\.4a1f231faeb1af910072d2e41d2b69dbac334bdc-audit.json",
     "files": [
         {
-            "date": 1762760158764,
-            "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-11-10.log",
-            "hash": "eef424e603156fb396e8e6cd867c9247da6d6f2ef70b3cf0f7970121c9577545"
+            "date": 1764221146400,
+            "name": "E:\\GoldFinanceManagement\\backend\\logs\\error-2025-11-27.log",
+            "hash": "38d5435b8975ba5fbf74c8549ccdfe5a52db6797c70820d9ab8566ab8f3639fb"
         }
     ],
     "hashType": "sha256"
