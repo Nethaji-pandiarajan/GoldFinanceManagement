@@ -177,9 +177,23 @@ exports.getLoanById = async (req, res) => {
     try {
         const loanQuery = `
           SELECT 
-              ld.*, -- All loan details
-              c.*,  -- All customer details
-              n.nominee_name, -- Specific nominee details
+              ld.*,
+              c.customer_id,
+              c.customer_name,
+              c.email,
+              c.phone,
+              c.gender,
+              c.description,
+              c.address,
+              c.government_proof,
+              c.proof_id,
+              c.date_of_birth,
+              c.nominee_id,
+              c.created_on,
+              c.updated_on,
+              c.customer_uuid,
+              c.current_address,
+              n.nominee_name,
               n.nominee_mobile
           FROM 
               datamanagement.loan_details ld
@@ -270,7 +284,7 @@ exports.recordPayment = async (req, res) => {
         await client.query("BEGIN");
         const specificInstallmentRes = await client.query(
             `SELECT * FROM datamanagement.loan_payments 
-             WHERE payment_id = $1 AND loan_id = $2 AND is_active = TRUE AND payment_status IN ('Pending', 'Overdue')`,
+             WHERE payment_id = $1 AND loan_id = $2 AND is_active = TRUE`,
             [payment_id, parsedLoanId]
         );
 
@@ -280,6 +294,14 @@ exports.recordPayment = async (req, res) => {
         }
         const currentInstallment = specificInstallmentRes.rows[0];
         const currentBalance = parseFloat(currentInstallment.loan_balance);
+        if (principalPaid > currentBalance) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ 
+                message: `Payment amount (₹${principalPaid}) exceeds the remaining balance (₹${currentBalance}).` 
+            });
+        }
+        const newBalance = currentBalance - principalPaid;
+
         await client.query(
             `UPDATE datamanagement.loan_payments
              SET principal_amount_paid = principal_amount_paid + $1, 
@@ -287,9 +309,10 @@ exports.recordPayment = async (req, res) => {
                  payment_status = 'Paid', 
                  payment_mode = $3, 
                  remarks = $4, 
-                 payment_date = CURRENT_TIMESTAMP
+                 payment_date = CURRENT_TIMESTAMP,
+                 loan_balance = $6
              WHERE payment_id = $5;`,
-            [principalPaid, interestPaid, payment_mode, remarks, currentInstallment.payment_id]
+            [principalPaid, interestPaid, payment_mode, remarks, currentInstallment.payment_id, newBalance.toFixed(2)]
         );
 
         await client.query(
@@ -299,7 +322,6 @@ exports.recordPayment = async (req, res) => {
             [principalPaid, parsedLoanId]
         );
 
-        const newBalance = currentBalance - principalPaid;
         logger.info(`[LOAN] New remaining balance for Loan ID '${id}' is ${newBalance.toFixed(2)}.`);
 
         if (newBalance <= 0.01) {
@@ -308,8 +330,8 @@ exports.recordPayment = async (req, res) => {
             await client.query(`UPDATE datamanagement.loan_details SET completion_status = 'Completed' WHERE loan_id = $1`, [parsedLoanId]);
         } else {
             const allFutureInstallments = await client.query(
-                `SELECT payment_id FROM datamanagement.loan_payments WHERE loan_id = $1 AND is_active = TRUE AND payment_status IN ('Pending', 'Overdue')`,
-                [parsedLoanId]
+                `SELECT payment_id FROM datamanagement.loan_payments WHERE loan_id = $1 AND is_active = TRUE AND payment_status IN ('Pending', 'Overdue') AND payment_id != $2`,
+                [parsedLoanId, currentInstallment.payment_id]
             );
             
             for(const inst of allFutureInstallments.rows) {
