@@ -180,6 +180,7 @@ exports.getLoanById = async (req, res) => {
               ld.*,
               c.customer_id,
               c.customer_name,
+              c.customer_image,
               c.email,
               c.phone,
               c.gender,
