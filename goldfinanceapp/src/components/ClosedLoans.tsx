@@ -4,7 +4,7 @@ import DT from "datatables.net-dt";
 import ViewLoanModal from "./ViewLoanModal";
 import AlertNotification from "./AlertNotification";
 import api from "../api";
-const API_BASE_URL = "http://localhost:4000";
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com";
 DataTable.use(DT);
 
 export default function ClosedLoans() {

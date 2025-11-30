@@ -12,7 +12,7 @@ import { PlusIcon ,ArrowDownTrayIcon, ChevronDownIcon} from "@heroicons/react/24
 import AlertNotification from "./AlertNotification";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { Menu, Transition } from "@headlessui/react";
-const API_BASE_URL = "http://localhost:4000"
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
 DataTable.use(DT);
 type AlertState = {
   show: boolean;

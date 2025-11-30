@@ -8,7 +8,7 @@ import AlertNotification from "./AlertNotification";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { PlusIcon } from "@heroicons/react/24/solid";
 const allKaratOptions = ["24K", "22K", "20K", "18K", "14K", "10K", "Others"];
-const API_BASE_URL = "http://localhost:4000"
+const API_BASE_URL = "https://goldfinancemanagement.onrender.com"
 DataTable.use(DT);
 
 type AlertState = {

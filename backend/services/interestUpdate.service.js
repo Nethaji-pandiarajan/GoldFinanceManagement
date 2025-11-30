@@ -117,7 +117,7 @@ const updateInterestForAllPendingLoans = async () => {
 
 exports.startInterestUpdateJob = () => {
   cron.schedule(
-    "*/1 * * * * ", 
+    "*/10 * * * * ", 
     () => {
       updateInterestForAllPendingLoans();
     },
