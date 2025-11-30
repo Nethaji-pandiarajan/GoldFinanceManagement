@@ -1,4 +1,3 @@
-//addgoldkaratforms
 import React, { useState, useEffect } from "react";
 import api from "../api";
 
@@ -13,7 +12,7 @@ type AddGoldKaratFormProps = {
   availableOptions: string[];
 };
 
-export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess, setAlert  , availableOptions}: AddGoldKaratFormProps) {
+export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess, setAlert, availableOptions }: AddGoldKaratFormProps) {
   const [formData, setFormData] = useState({
     description: "",
     purity: "",
@@ -35,13 +34,13 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
         setCustomKaratName(initialData.karat_name || "");
       }
     }
-  }, [mode, initialData , availableOptions  ]);
+  }, [mode, initialData, availableOptions]);
 
   useEffect(() => {
     if (mode === 'add') {
       if (selectedKarat && selectedKarat !== "Others") {
         const karatValue = parseInt(selectedKarat, 10);
-        
+
         if (!isNaN(karatValue)) {
           const calculatedPurity = (karatValue / 24) * 100;
           setFormData(prevData => ({
@@ -75,7 +74,7 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
       ...formData,
       ...(mode === 'add' && { karat_name: finalKaratName }),
     };
-    
+
     try {
       if (mode === "edit") {
         await api.put(`/api/karats/${initialData.karat_id}`, submissionData);
@@ -91,7 +90,7 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
       setLoading(false);
     }
   };
-  
+
   const inputStyle = "w-full p-2 rounded bg-[#1f2628] h-11 text-white border border-[#1f2628] focus:outline-none focus:border-[#c69909]";
   const disabledInputStyle = "bg-black/20 cursor-not-allowed text-gray-400";
   const labelStyle = "block text-sm font-bold text-gray-300 mb-1";
@@ -124,10 +123,10 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
           <div className="space-y-4">
             <div>
               <label className={labelStyle}>Karat Name*</label>
-              <select 
-                value={selectedKarat} 
-                onChange={(e) => setSelectedKarat(e.target.value)} 
-                className={`${inputStyle} ${mode === 'edit' ? disabledInputStyle : ''}`} 
+              <select
+                value={selectedKarat}
+                onChange={(e) => setSelectedKarat(e.target.value)}
+                className={`${inputStyle} ${mode === 'edit' ? disabledInputStyle : ''}`}
                 required
                 disabled={mode === 'edit'}
               >
@@ -138,13 +137,13 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
             {selectedKarat === 'Others' && (
               <div>
                 <label className={labelStyle}>Custom Karat Name*</label>
-                <input 
-                  type="text" 
-                  value={customKaratName} 
-                  onChange={(e) => setCustomKaratName(e.target.value)} 
-                  className={`${inputStyle} ${mode === 'edit' ? disabledInputStyle : ''}`} 
-                  required 
-                  placeholder="e.g., 9K, Custom Alloy" 
+                <input
+                  type="text"
+                  value={customKaratName}
+                  onChange={(e) => setCustomKaratName(e.target.value)}
+                  className={`${inputStyle} ${mode === 'edit' ? disabledInputStyle : ''}`}
+                  required
+                  placeholder="e.g., 9K, Custom Alloy"
                   disabled={mode === 'edit'}
                 />
               </div>
@@ -157,12 +156,18 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
                 value={formData.purity}
                 onChange={handleChange}
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                  onKeyDown={(e) => {
-                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                      e.preventDefault();
-                    }
-                  }}
-                className={`${inputStyle} ${selectedKarat !== 'Others' && mode === 'add' ? disabledInputStyle : ''}`}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                  }
+                }}
+                className={`${inputStyle} ${
+                  mode === "edit"
+                    ? disabledInputStyle        
+                    : selectedKarat !== "Others"
+                    ? disabledInputStyle       
+                    : ""
+                }`}
                 placeholder={selectedKarat !== 'Others' && mode === 'add' ? 'Auto-calculated' : 'e.g., 91.60'}
                 step="0.01"
                 readOnly={selectedKarat !== 'Others' && mode === 'add'}
@@ -191,8 +196,8 @@ export default function AddGoldKaratForm({ mode, initialData, onClose, onSuccess
               {loading
                 ? "Saving..."
                 : mode === "edit"
-                ? "Update Karat"
-                : "Save Karat"}
+                  ? "Update Karat"
+                  : "Save Karat"}
             </button>
           </div>
         </form>

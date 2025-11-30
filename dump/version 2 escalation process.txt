@@ -1,0 +1,105 @@
+Version 2 of Maya gold finance project process
+
+
+Verified tables :
+
+allowed_machines :       Verified
+
+customers:               Verified
+
+gold_karat_details:      Verified
+
+gold_rate:               Verified
+
+investment_history :     Verified
+
+loan_details :           Verified
+
+loan_ornament_details :  Verified
+
+loan_payments :          Verified
+
+loan_scheme_slab :       Verified
+
+nominees :               Verified
+
+manage_expenses :        Verified
+
+ornament_details :       Verified
+
+processed_amounts :      Verified
+
+scheme_details :         Verified
+
+users :                  Verified
+====================================================================================
+Change the values of the investment from users to investment histry table : done
+====================================================================================
+
+Executed commands in production
+
+CUSTOMERS
+
+ALTER TABLE CUSTOMERS
+ADD COLUMN RELATIONSHIP_TYPE VARCHAR(20)
+
+ALTER TABLE CUSTOMERS
+ADD COLUMN RELATED_PERSON_NAME VARCHAR(100)
+
+------------------------------------------------------------------
+
+GOLD_KARAT_DETAILS
+
+DROP TRIGGER trigger_set_default_karat_description ON gold_karat_details
+
+------------------------------------------------------------------
+
+INVESTMENT_HISTORY
+
+CREATE TABLE investment_history (
+   id SERIAL PRIMARY KEY,
+   Added_on TIMESTAMP WITHOUT TIME ZONE,
+   Added_by INTEGER,
+   amount_Added NUMERIC(15,2),
+   Current_balance NUMERIC(15,2),
+   Remarks VARCHAR(255)
+);
+
+added a new row with these :
+id  added_on                   added_by  amount_added  current_balance  remarks
+1   2025-09-04 12:51:02.982991   4       3510000.00       3510000.00    none
+
+-------------------------------------------------------------------
+
+LOAN_DETAILS
+
+ALTER TABLE LOAN_DETAILS
+ADD COLUMN ORNAMENT_IMAGE BYTEA
+
+-------------------------------------------------------------------
+
+MANAGE_EXPENSES
+
+CREATE TABLE manage_expenses (
+   id SERIAL PRIMARY KEY,
+   item VARCHAR(200),
+   quantity INT,
+   description VARCHAR(1000),
+   price NUMERIC(10,2),
+   created_date DATE DEFAULT CURRENT_DATE,
+   month_year VARCHAR(7),
+   remaining_balance NUMERIC(15,2),
+   added_by INT
+);
+
+-------------------------------------------------------------------
+
+ORNAMENT_DETAILS
+
+DROP TRIGGER trigger_set_default_description ON ornament_details
+
+-------------------------------------------------------------------
+
+USERS
+
+havent removed the total_invested and investment_updated_by
