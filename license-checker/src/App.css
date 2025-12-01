@@ -1,0 +1,68 @@
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color: #f6f6f6;
+  background-color: #2f2f2f;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+.container {
+  margin: 0;
+  padding-top: 5vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5em;
+  font-weight: bold;
+}
+
+.card {
+  background-color: #404040;
+  border-radius: 8px;
+  padding: 1em 2em;
+  margin: 1em auto;
+  width: 80%;
+  max-width: 700px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+.action-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    align-items: center;
+    margin-top: 1em;
+}
+
+.button-add {
+  background-color: #48bb78;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 5px;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button-add:hover:not(:disabled) {
+  background-color: #38a169;
+}
+
+.button-add:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
